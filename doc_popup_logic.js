@@ -1,0 +1,137 @@
+<script>
+jQuery(document).ready(function () {
+  jQuery(document).on('elementor/popup/show', function () {
+
+    var fileInput = document.getElementById('file-picker');
+    var docInputDiv = document.getElementById('doc-input');
+    var addButton = document.querySelector('.add-forecast-doc-btn');
+    var saveBtn = document.getElementById('save-forecast-document');
+		var selectedFiles = [];
+
+    if (!saveBtn || !fileInput || !docInputDiv) {return;}
+
+    // File picker logic
+    if (addButton) {
+      addButton.addEventListener('click', function (e) {
+				showLoading();
+				//Prevents clicking from scrolling the page up
+				e.preventDefault();
+				e.stopPropagation();
+				var previousFiles = fileInput.files.length;
+
+			// Listen for dialog close
+			setTimeout(function () {
+				if (fileInput.files.length === previousFiles) {
+					// No file selected — user cancelled
+					hideLoading();
+				}
+			}, 900); 
+				fileInput.click();
+			});
+    }
+
+		//Add files
+   var selectedFiles = [];
+		console.log(docInputDiv);
+
+		fileInput.onchange = function () {
+			showLoading();
+
+			var newFiles = fileInput.files;
+
+			for (var i = 0; i < newFiles.length; i++) {
+				var file = newFiles[i];
+
+				// Check if file is already in selectedFiles (by name and size)
+				var alreadyExists = false;
+				for (var j = 0; j < selectedFiles.length; j++) {
+					if (
+						selectedFiles[j].name === file.name &&
+						selectedFiles[j].size === file.size &&
+						selectedFiles[j].lastModified === file.lastModified
+					) {
+						alreadyExists = true;
+						break;
+					}
+				}
+
+				if (!alreadyExists) {
+					selectedFiles.push(file);
+
+					// Create and append file link
+					var li = document.createElement('li');
+
+					var link = document.createElement('a');
+					link.textContent = file.name;
+					link.style.color = 'blue';
+					link.style.textDecoration = 'underline';
+					link.style.cursor = 'pointer';
+					link.href = URL.createObjectURL(file);
+					link.target = '_blank';
+					link.style.display = 'inline';
+					li.appendChild(link);
+
+					docInputDiv.appendChild(li);
+				}
+			}
+			hideLoading();
+		};
+
+    // Save files in the DB when save button is clicked
+    saveBtn.addEventListener('click', function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			
+      if (!selectedFiles || selectedFiles.length === 0) {
+        alert('No files detected');
+        return;
+      }
+
+			//Get rowId to update on Save	
+      var hiddenInput = document.getElementById('forecast-current-row-id');
+      var rowId = hiddenInput ? hiddenInput.value : null;
+      if (!rowId) {
+        alert('Row ID missing.');
+        return;
+      }
+
+			saveBtn.disabled = true;
+			
+      var formData = new FormData();
+      for (var i = 0; i < selectedFiles.length; i++) {
+        formData.append('docs[]', selectedFiles[i]);
+      }
+
+      formData.append('id', rowId);
+			formData.append('action', 'save_docs');
+			formData.append('nonce', MyAjax.nonce);
+			
+			showLoading();
+      
+			//Send to BE to update DB
+			fetch(MyAjax.ajax_url, {
+        method: 'POST',
+        body: formData
+      })
+        .then(function (response) {
+          return response.json();
+        })
+        .then(function (data) {
+					hideLoading();
+					saveBtn.disabled = false;
+          if (data && data.success) {
+            fileInput.value = '';
+            selectedFiles = [];
+          } else {
+            alert('Error: ' + data.data);
+          }
+        })
+        .catch(function () {
+				  hideLoading();
+				 saveBtn.disabled = false;
+          alert('AJAX error. Check document size.');
+        });
+    });
+  });
+});
+</script>
