@@ -37,7 +37,7 @@ function enqueue_datatables_assets() {
 
     wp_add_inline_script('datatables', "
         jQuery(document).ready(function($) {
-            $('#todoTable_0, #todoTable_1, #forecastTable_0, #forecastTable_1, #fixlistTable_0, #fixlistTable_1').DataTable({
+            $('#todoTable_0, #todoTable_1, #forecastTable_0, #forecastTable_1, #fixlistTable_0, #fixlistTable_1, #customersTable_list').DataTable({
                 autoWidth : false, 
 				ordering: true,          // Enable sorting
                 order: [[1, 'asc']],    
@@ -204,6 +204,169 @@ add_action('wp_head', 'add_ajax_vars_inline_script');
 
 
 /* =========================================================================== FORMS LOGIC =========================================================================== */
+/* ----------------------------  NEW forecast logic  ---------------------------- */
+add_action('wp_ajax_save_forecast_form', 'save_forecast_form');
+add_action('wp_ajax_nopriv_save_forecast_form', 'save_forecast_form'); //Allows non-logged-in users
+
+function ajax_data_block_forecast_custom() {
+    $nonce = wp_create_nonce('save_forecast_nonce');
+    $ajax_url = admin_url('admin-ajax.php');
+    return "<div id='ajax-data-block-forecast_custom' data-nonce='{$nonce}' data-url='{$ajax_url}' style='display:none;'></div>";
+}
+add_shortcode('ajax_data_block_forecast_form', 'ajax_data_block_forecast_custom');
+
+function save_forecast_form() {
+  global $wpdb;
+
+	$errors = '';
+	$success = '';
+
+	if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'save_forecast_nonce')) {
+		$errors .= 'Invalid nonce. ';
+	}
+
+	/* CUSTOMER PART */
+	$first_name  = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
+	$last_name   = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
+	$email       = isset($_POST['email']) ? sanitize_email($_POST['email']) : '';
+	$postal_code = isset($_POST['postal_code']) ? sanitize_text_field($_POST['postal_code']) : '';
+	$phone_num   = isset($_POST['phoneNum']) ? sanitize_text_field($_POST['phoneNum']) : '';
+
+	if (empty($first_name) || empty($last_name)) {
+		$errors .= 'Missing required fields. ';
+	}
+
+	/* DATE HANDLING */
+	$dueDate = new DateTime(isset($_POST['date']) ? sanitize_text_field($_POST['date']) : '');
+	$formattedDueDate = $dueDate->format('Y-m-d');
+	$formattedCurrentDate = (new DateTime())->format('Y-m-d');
+
+	/* FORECAST PART */
+	$model         = isset($_POST['model']) ? sanitize_text_field($_POST['model']) : '';
+	$modelType     = isset($_POST['modelType']) ? sanitize_text_field($_POST['modelType']) : '';
+	$width         = formatFeetInches(isset($_POST['widthField']) ? sanitize_text_field($_POST['widthField']) : '');
+	$depth         = formatFeetInches(isset($_POST['depthField']) ? sanitize_text_field($_POST['depthField']) : '');
+	$louverLength  = formatFeetInches(isset($_POST['louverLength']) ? sanitize_text_field($_POST['louverLength']) : '');
+	$louverQty     = isset($_POST['louverQty']) ? sanitize_text_field($_POST['louverQty']) : '';
+	$soldiers      = isset($_POST['soldiers']) ? sanitize_text_field($_POST['soldiers']) : '';
+	$subframeQty   = isset($_POST['subframeQty']) ? sanitize_text_field($_POST['subframeQty']) : '';
+	$subframeSize  = formatFeetInches(isset($_POST['subframeSize']) ? sanitize_text_field($_POST['subframeSize']) : '');
+	$postSize      = formatFeetInches(isset($_POST['postSize']) ? sanitize_text_field($_POST['postSize']) : '');
+	$postQty       = isset($_POST['postQty']) ? sanitize_text_field($_POST['postQty']) : '';
+	$dueDate       = $formattedDueDate;
+	$color         = isset($_POST['color']) ? sanitize_text_field($_POST['color']) : '';
+	$submittedAt   = $formattedCurrentDate;
+	$customFields  = isset($_POST['custom']) && is_array($_POST['custom']) ? array_map('sanitize_text_field', $_POST['custom']) : [];
+	$status        = 0;
+	$orderStatus   = 'Measurement';
+	$accessories   = isset($_POST['extras']) && is_array($_POST['extras']) ? array_map('sanitize_text_field', $_POST['extras']) : [];
+
+	/* IMAGE UPLOAD */
+	$imageUrls = [];
+	if (!function_exists('wp_handle_upload')) {
+		require_once(ABSPATH . 'wp-admin/includes/file.php');
+		require_once(ABSPATH . 'wp-admin/includes/media.php');
+		require_once(ABSPATH . 'wp-admin/includes/image.php');
+	}
+
+	if (isset($_FILES['customer_image']) && !empty($_FILES['customer_image']['name'][0])) {
+		$files = $_FILES['customer_image'];
+		foreach ($files['name'] as $key => $value) {
+			if ($files['name'][$key]) {
+				$file_array = [
+					'name'     => $files['name'][$key],
+					'type'     => $files['type'][$key],
+					'tmp_name' => $files['tmp_name'][$key],
+					'error'    => $files['error'][$key],
+					'size'     => $files['size'][$key]
+				];
+
+				$upload_overrides = ['test_form' => false];
+				$movefile = wp_handle_upload($file_array, $upload_overrides);
+
+				if ($movefile && !isset($movefile['error'])) {
+					$attachment = [
+						'post_mime_type' => $movefile['type'],
+						'post_title'     => sanitize_file_name($files['name'][$key]),
+						'post_content'   => '',
+						'post_status'    => 'inherit'
+					];
+
+					$attach_id = wp_insert_attachment($attachment, $movefile['file']);
+					$attach_data = wp_generate_attachment_metadata($attach_id, $movefile['file']);
+					wp_update_attachment_metadata($attach_id, $attach_data);
+
+					$imageUrls[] = wp_get_attachment_url($attach_id);
+				}
+			}
+		}
+	}
+
+	/* DATABASE INSERT */
+	$wpdb->query('START TRANSACTION');
+
+	$inserted_customer = $wpdb->insert(
+		'wp_custom_customers',
+		[
+			'postal_code'  => $postal_code,
+			'first_name'   => $first_name,
+			'last_name'    => $last_name,
+			'email'        => $email,
+			'phone_number' => $phone_num
+		],
+		['%s','%s','%s','%s','%s']
+	);
+
+	if ($inserted_customer === false) {
+		$wpdb->query('ROLLBACK');
+		$errors .= 'Customer insert failed; customer rolled back. ';
+	}
+
+	$customer_id = $wpdb->insert_id;
+
+	$inserted_forecast = $wpdb->insert(
+		'wp_forecast_table',
+		[
+			'customer_id'   => $customer_id,
+			'model'         => $model,
+			'model_type'    => $modelType,
+			'width'         => $width,
+			'depth'         => $depth,
+			'louver_size'   => $louverLength,
+			'louver_qty'    => $louverQty,
+			'soldiers'      => $soldiers,
+			'subframe_size' => $subframeSize,
+			'subframe_qty'  => $subframeQty,
+			'post_size'     => $postSize,
+			'post_qty'      => $postQty,
+			'due_date'      => $dueDate,
+			'color'         => $color,
+			'entry_date'    => $submittedAt,
+			'custom_fields' => json_encode($customFields),
+			'status'        => $status,
+			'order_status'  => $orderStatus,
+			'accessories'   => json_encode($accessories),
+			'image_url'     => json_encode($imageUrls),
+		],
+		['%d','%s','%s','%s','%s','%s','%s','%s','%s','%s',
+		 '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s']
+	);
+
+	if ($inserted_forecast === false) {
+		$wpdb->query('ROLLBACK');
+		$errors .= 'Forecast insert failed; customer rolled back. ';
+	} else {
+		$wpdb->query('COMMIT');
+	}
+
+	if ($errors) {
+		wp_send_json_error(['message' => $errors]);
+	} else {
+		wp_send_json_success(['message' => 'Customer and forecast inserted successfully']);
+	}
+
+}
+
 /* ----------------------------  Create a new DB entry from a form  ---------------------------- */
 add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler ) {
     $form_name = $record->get_form_settings('form_name');
@@ -482,6 +645,7 @@ add_action('wp_ajax_save_forecast_table', 'save_table_cb');
 add_action('wp_ajax_nopriv_save_forecast_table', 'save_table_cb');    //Allows non logged in user to make changes
 add_action('wp_ajax_save_todo_table', 'save_table_cb');
 add_action('wp_ajax_nopriv_save_todo_table', 'save_table_cb');        //Allows non logged in user to make changes
+
 
 /*----------------------------  Fetch row data for forecast modal  ----------------------------*/
 function get_row_data_ajax() {
@@ -1239,25 +1403,38 @@ add_shortcode('show_todo_data', 'display_todo_table');
 function display_customer_data() {
 	
 	global $wpdb;
-	global $customValuesToCheck;
-	$customFlags = [];
 	
-	$results = $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM wp_custom_customers")
-    );
+	$query = "
+		SELECT c.*, f.* 
+		FROM wp_custom_customers c
+		INNER JOIN wp_custom_form_forecast f
+		ON c.postal_code = f.postal_code";
+
+	$results = $wpdb->get_results($query);
 	
 	if (empty($results)) {
         return '<p style="font-family: Roboto, sans-serif;text-align: center;"">No data found.</p>';
     }
 	
-
+	$formatted_entry_date = date('d/m', strtotime($entry_date));
+	$formatted_due_date = date('d/m', strtotime($due_date));
+	
     ob_start();	
-	echo '<div class="table-container">';
-	echo '<table id="0" class="table-custom display">';
+	echo '<div class="mrpergola-table-container">';
+	echo '<table id="customersTable_list" class="mrpergola-table display">';
 	echo '<thead><tr>';
-	echo '<th class="col-large">Name</th>
-		  <th class="col-medium">Email</th>
-		  <th class="col-small">Postal Code</th>';
+	echo '<th class="mrpergola-col-medium">Name</th>
+		<th class="mrpergola-col-xsmall">Submit date</th>
+		<th class="mrpergola-col-xsmall">Due date</th>
+		<th class="mrpergola-col-xsmall">Mdl</th>
+		<th class="mrpergola-col-xsmall">Type</th>
+		<th class="mrpergola-col-xsmall">Wdt</th>
+		<th class="mrpergola-col-xsmall">Dpt</th>
+		<th class="mrpergola-col-small">Color</th>
+		<th class="mrpergola-col-medium">Accessories</th>
+		<th class="mrpergola-col-medium">Postal Code</th>
+		<th class="mrpergola-col-large">Info</th>
+		<th class="mrpergola-col-large">Status</th>';
 	echo '</tr></thead>';
 	echo '<tbody>';
 		
@@ -1267,8 +1444,17 @@ function display_customer_data() {
 		$full_name = $row->first_name . ' ' . $row->last_name;
 		echo '<tr data-id="' . esc_attr($row->id) . '">';
 		echo '<td><a href="' . esc_url($profile_url) . '" target="_blank">' . esc_html($full_name) . '</a></td>';
-		echo '<td>' . esc_html($row->email) . '</td>';
-		echo '<td>' . esc_html($row->postal_code) . '</td>';
+		echo '<td> ' . esc_attr($formatted_entry_date) . '</td>';
+		echo '<td>' . esc_attr($formatted_due_date) . '</td>';
+		echo '<td> ' . esc_attr($row->model) . '</td>';
+		echo '<td> ' . esc_attr($row->type) . '</td>';
+		echo '<td>' . esc_attr($row->width) . '</td>';
+		echo '<td>' . esc_attr($row->depth) . '</td>';
+		echo '<td>color</td>'; //echo '<td>' . esc_attr($row->color) . '</td>';
+		echo '<td>accessories</td>'; //echo '<td>' . esc_attr($row->accessories) . '</td>';
+		echo '<td>' . esc_attr($row->postal_code) . '</td>';
+		echo '<td>' . esc_html($row->info) . '</td>';
+		echo '<td>order status</td>';//echo '<td>' . esc_attr($row->status) . '</td>';
 		echo '</tr>';
 	}
 	echo '</tbody></table>';
@@ -1281,27 +1467,40 @@ add_shortcode('show_customer_data', 'display_customer_data');
 
 
 /* ---------------------------- Retrieve Customer Profile Data ---------------------------- */
-function output_customer_json() {
-    // Only run on the "Customer Profile" page
-    if (!is_page('customer-profile') || !isset($_GET['id'])) return;
-
-    global $wpdb;
-    $id = intval($_GET['id']); // sanitize input
-
-	$customers = $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM wp_custom_customers WHERE id=%d", $id), 
-		ARRAY_A
-    );
-	
-    if ($customer) {
-        echo '<script>';
-        echo 'var customerData = ' . json_encode($customer) . ';';
-        echo '</script>';
-    } else {
-        echo '<script>var customerData = null;</script>';
-    }
+add_action('rest_api_init', 'myplugin_register_routes');
+function myplugin_register_routes() {
+    register_rest_route('myplugin/v1', '/customer', array(
+        'methods' => WP_REST_Server::READABLE,
+        'callback' => 'myplugin_get_customer',
+        'permission_callback' => '__return_true', // PUBLIC GET
+        'args' => array(
+            'id' => array(
+                'required' => true,
+                'sanitize_callback' => 'absint'
+            ),
+        ),
+    ));
 }
-add_action('wp_head', 'output_customer_json');
+
+function myplugin_get_customer( WP_REST_Request $request ) {
+    global $wpdb;
+    $id = $request->get_param('id');
+    error_log('[myplugin] get_customer called with id: ' . intval($id)); // debug log
+
+    if ( ! $id ) {
+        return new WP_Error('no_id', 'No ID provided', array('status' => 400));
+    }
+
+
+    $row = $wpdb->get_row( $wpdb->prepare("SELECT * FROM wp_custom_customers WHERE id = %d", $id), ARRAY_A );
+
+    if ( ! $row ) {
+        return new WP_Error('not_found', 'Customer not found', array('status' => 404));
+    }
+
+    // remove sensitive fields if any, e.g. unset($row['password']);
+    return rest_ensure_response( $row );
+}
 
 /* =========================================================================== TASK EMAIL LOGIC =========================================================================== */
 
