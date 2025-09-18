@@ -1,6 +1,7 @@
 <?php
-/* =========================================================================== ASSETS =========================================================================== */
-
+/* ========================================================================================================================================== */
+/*                                                         ASSETS                                                                             */
+/* ========================================================================================================================================== */
 //Global variable of values to check
 $customValuesToCheck = ['depth', 'width', 'subSize', 'subQty', 'postSize', 'postQty'];
 
@@ -204,7 +205,9 @@ add_action('wp_head', 'add_ajax_vars_inline_script');
 
 
 /* =========================================================================== FORMS LOGIC =========================================================================== */
-/* ----------------------------  NEW forecast logic  ---------------------------- */
+/* ========================================================================================================================================== */
+/*                                                         FORECAST FORM                                                                      */
+/* ========================================================================================================================================== */
 add_action('wp_ajax_save_forecast_form', 'save_forecast_form');
 add_action('wp_ajax_nopriv_save_forecast_form', 'save_forecast_form'); //Allows non-logged-in users
 
@@ -345,7 +348,6 @@ function save_forecast_form() {
 			'custom_fields' => json_encode($customFields),
 			'status'        => $status,
 			'order_status'  => $orderStatus,
-			'accessories'   => json_encode($accessories),
 			'image_url'     => json_encode($imageUrls),
 		],
 		['%d','%s','%s','%s','%s','%s','%s','%s','%s','%s',
@@ -563,7 +565,9 @@ function formatFeetInches($input) {
 }
 
 
-/* ----------------------------  Save changes made to a table in the view  ---------------------------- */
+/* ========================================================================================================================================== */
+/*                                                         SAVE TABLE                                                                         */
+/* ========================================================================================================================================== */
 function save_table_cb() {
    if ( ! isset($_POST['_wpnonce']) || ! wp_verify_nonce($_POST['_wpnonce'], 'save_table_nonce') ) {
     	wp_send_json_error('Security check failed. Nonce invalid or missing.');
@@ -685,7 +689,9 @@ function ajax_data_block_forecast_shortcode() {
 }
 add_shortcode('ajax_data_block_forecast', 'ajax_data_block_forecast_shortcode');
 
-/* -------------------------- Save Documents from Forecast Modal ---------------------------*/
+/* ========================================================================================================================================== */
+/*                                                         SAVE DOCS                                                                          */
+/* ========================================================================================================================================== */
 add_action('wp_ajax_save_docs', 'handle_save_docs');
 add_action('wp_ajax_nopriv_save_docs', 'handle_save_docs');
 
@@ -769,10 +775,10 @@ function handle_save_docs() {
 }
 
 
-
-
 /* =========================================================================== VIEWS LOGIC =========================================================================== */
-/* ----------------------------  Retrieve Fixlist data and display it  ---------------------------- */
+/* ========================================================================================================================================== */
+/*                                                  FIX LIST / SERVICES                                                                       */
+/* ========================================================================================================================================== */
 function display_fixlist_data($status) {
 	
 	//DB call based on status
@@ -997,7 +1003,9 @@ function display_forecast_data_table($atts){
 
 add_shortcode('show_forecast_data', 'display_forecast_data_table');
 
-/* ~~~~~~~~~~~~~~ Calculations for 'Material Needed' in forecast  ~~~~~~~~~~~~~~ */
+/* ========================================================================================================================================== */
+/*                                                  MATERIAL CALCULATIONS                                                                     */
+/* ========================================================================================================================================== */
 
 function sortArrayByKey($array) {
     // Create a custom comparison function to sort by the numerical value of the key
@@ -1067,7 +1075,6 @@ function calculatePosts($results){
     'customKeys' => array_keys($sortedCustomPostsCounts),
     'customValues' => array_values($sortedCustomPostsCounts)
 ];
-
 }
 
 function calculateWidthAndDepth($results) {
@@ -1161,7 +1168,6 @@ function calculateSubframes($results){
 		'customValues' => $customValues
 	];
 }
-
 
 function calculate_forecast_material(){
 	ob_start();
@@ -1315,7 +1321,9 @@ function calculate_forecast_material(){
 
 add_shortcode('show_forecast_material', 'calculate_forecast_material');
 
-/* ----------------------------  Retrieve To Do data and display it  ---------------------------- */
+/* ========================================================================================================================================== */
+/*                                                   TO DO LIST.                                                                              */
+/* ========================================================================================================================================== */
 function display_todo_data($status) {
 	global $wpdb;
 	
@@ -1399,16 +1407,18 @@ function display_todo_table($atts){
 
 add_shortcode('show_todo_data', 'display_todo_table');
 			
-/* ----------------------------  Retrieve Customer Data and Display it  ---------------------------- */
+/* ========================================================================================================================================== */
+/*                                                      CUSTOMER DATA                                                                         */
+/* ========================================================================================================================================== */
+//Displays the full table of all the customers
 function display_customer_data() {
-	
 	global $wpdb;
 	
-	$query = "
-		SELECT c.*, f.* 
-		FROM wp_custom_customers c
-		INNER JOIN wp_custom_form_forecast f
-		ON c.postal_code = f.postal_code";
+	$query =
+		  "SELECT c.*, f.* 
+             FROM wp_custom_customers c
+             INNER JOIN wp_forecast_table f
+             ON c.id = f.customer_id";
 
 	$results = $wpdb->get_results($query);
 	
@@ -1423,38 +1433,39 @@ function display_customer_data() {
 	echo '<div class="mrpergola-table-container">';
 	echo '<table id="customersTable_list" class="mrpergola-table display">';
 	echo '<thead><tr>';
-	echo '<th class="mrpergola-col-medium">Name</th>
+	echo '<th>Name</th>
 		<th class="mrpergola-col-xsmall">Submit date</th>
 		<th class="mrpergola-col-xsmall">Due date</th>
 		<th class="mrpergola-col-xsmall">Mdl</th>
 		<th class="mrpergola-col-xsmall">Type</th>
 		<th class="mrpergola-col-xsmall">Wdt</th>
 		<th class="mrpergola-col-xsmall">Dpt</th>
-		<th class="mrpergola-col-small">Color</th>
-		<th class="mrpergola-col-medium">Accessories</th>
+		<th class="mrpergola-col-xsmall">Color</th>
+		<th class="mrpergola-col-large">Accessories</th>
 		<th class="mrpergola-col-medium">Postal Code</th>
-		<th class="mrpergola-col-large">Info</th>
+		<th>Info</th>
 		<th class="mrpergola-col-large">Status</th>';
 	echo '</tr></thead>';
 	echo '<tbody>';
 		
 	foreach ($results as $row) {
 		$profile_url = 'customer-profile.php?id=' . urlencode($row->id);
-		$profile_url = site_url('/customer-profile/?id=' . urlencode($row->id));
+		$profile_url = site_url('/customer-profile/?id=' . urlencode($row->customer_id));
 		$full_name = $row->first_name . ' ' . $row->last_name;
+		$accessories = json_decode($row->accessories, true);
 		echo '<tr data-id="' . esc_attr($row->id) . '">';
-		echo '<td><a href="' . esc_url($profile_url) . '" target="_blank">' . esc_html($full_name) . '</a></td>';
+		echo '<td><a href="' . esc_url($profile_url) .  '" target="_blank" style="color:black;">' . esc_html($full_name) . '</a></td>';
 		echo '<td> ' . esc_attr($formatted_entry_date) . '</td>';
 		echo '<td>' . esc_attr($formatted_due_date) . '</td>';
 		echo '<td> ' . esc_attr($row->model) . '</td>';
-		echo '<td> ' . esc_attr($row->type) . '</td>';
+		echo '<td> ' . esc_attr($row->model_type) . '</td>';
 		echo '<td>' . esc_attr($row->width) . '</td>';
 		echo '<td>' . esc_attr($row->depth) . '</td>';
-		echo '<td>color</td>'; //echo '<td>' . esc_attr($row->color) . '</td>';
-		echo '<td>accessories</td>'; //echo '<td>' . esc_attr($row->accessories) . '</td>';
+		echo '<td>' . esc_attr($row->color) . '</td>';
+		echo '<td>' . esc_html(implode(', ', $accessories)) . '</td>';
 		echo '<td>' . esc_attr($row->postal_code) . '</td>';
 		echo '<td>' . esc_html($row->info) . '</td>';
-		echo '<td>order status</td>';//echo '<td>' . esc_attr($row->status) . '</td>';
+		echo '<td>' . esc_attr($row->order_status) . '</td>';
 		echo '</tr>';
 	}
 	echo '</tbody></table>';
@@ -1467,12 +1478,13 @@ add_shortcode('show_customer_data', 'display_customer_data');
 
 
 /* ---------------------------- Retrieve Customer Profile Data ---------------------------- */
+// REST API endpoint
 add_action('rest_api_init', 'myplugin_register_routes');
 function myplugin_register_routes() {
     register_rest_route('myplugin/v1', '/customer', array(
         'methods' => WP_REST_Server::READABLE,
         'callback' => 'myplugin_get_customer',
-        'permission_callback' => '__return_true', // PUBLIC GET
+        'permission_callback' => '__return_true',
         'args' => array(
             'id' => array(
                 'required' => true,
@@ -1482,37 +1494,293 @@ function myplugin_register_routes() {
     ));
 }
 
-function myplugin_get_customer( WP_REST_Request $request ) {
+function myplugin_get_customer(WP_REST_Request $request) {
     global $wpdb;
     $id = $request->get_param('id');
-    error_log('[myplugin] get_customer called with id: ' . intval($id)); // debug log
+    error_log('[myplugin] get_customer called with id: ' . intval($id));
 
-    if ( ! $id ) {
+    if (!$id) {
         return new WP_Error('no_id', 'No ID provided', array('status' => 400));
     }
 
+    $row = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM wp_custom_customers WHERE id = %d", $id),
+        ARRAY_A
+    );
 
-    $row = $wpdb->get_row( $wpdb->prepare("SELECT * FROM wp_custom_customers WHERE id = %d", $id), ARRAY_A );
-
-    if ( ! $row ) {
+    if (!$row) {
         return new WP_Error('not_found', 'Customer not found', array('status' => 404));
     }
 
-    // remove sensitive fields if any, e.g. unset($row['password']);
-    return rest_ensure_response( $row );
+    return rest_ensure_response($row);
 }
 
-/* =========================================================================== TASK EMAIL LOGIC =========================================================================== */
+function generate_customer_forecast_table($results){
+	 if (!$results) {
+        return '<p>Customer not found.</p>';
+    }
+			
+    $html_table = '<div class="mrpergola-table-container"> <table id="customer_table" class="mrpergola-table display">';
+    $html_table .= '<thead><tr>';
+	$html_table .= 
+		'<th colspan="2">Date</th>
+		<th colspan="2"></th>
+		<th colspan="2">Frames</th>
+		<th colspan="2">Subframes</th>
+		<th colspan="2">Louvers</th>
+		<th colspan="2">Posts</th>
+		<th colspan="5"></th></tr>';
+	
+    $html_table .= 
+		'<th class="mrpergola-col-xsmall">Submit</th>
+		<th class="mrpergola-col-xsmall">Due</th>
+        <th style="width:2%">Mdl</th>
+        <th style="width:2%">Type</th>
+        <th style="width:2%">Wdt</th>
+        <th style="width:2%">Dpt</th>
+        <th class="mrpergola-col-xsmall">Lgt</th>
+        <th class="mrpergola-col-xsmall">Qty</th>
+        <th class="mrpergola-col-xsmall">Lgt</th>
+        <th class="mrpergola-col-xsmall">Qty</th>
+        <th style="width:6%">Lgt</th>
+        <th style="width:6%">Qty</th>
+        <th class="mrpergola-col-xsmall">Slds</th>
+		<th class="mrpergola-col-xsmall">Color</th>
+		<th class="mrpergola-col-xsmall">Extras</th>
+        <th>Info</th>
+        <th class="mrpergola-col-xsmall">Docs</th>';
+    $html_table .= '</tr></thead><tbody>';
+
+    $customStyle = 'color: blue;';
+    
+	foreach ($results as $row) {
+        $customFlags = [];
+        if (!empty($row->custom_fields)) {
+            $customValuesArray = json_decode($row->custom_fields, true);
+            foreach ($customValuesToCheck as $value) {
+                $customFlags[$value] = in_array($value, array_map('trim', $customValuesArray));
+            }
+        }
+
+        $entry_date = $row->entry_date;
+        $formatted_entry_date = date('d/m', strtotime($entry_date));
+        $due_date = $row->due_date;
+        $formatted_due_date = date('d/m', strtotime($due_date));
+		$accessories = json_decode($row->accessories, true) ?: [];
+
+        $html_table .= '<tr data-id="' . esc_attr($row->id) . '">';
+        $html_table .= '<td>' . esc_html($formatted_entry_date) . '</td>';
+        $html_table .= '<td contenteditable="true">' . esc_html($formatted_due_date) . '</td>';
+        $html_table .= '<td contenteditable="true">' . esc_html($row->model) . '</td>';
+        $html_table .= '<td contenteditable="true">' . esc_html($row->model_type) . '</td>';
+        $html_table .= '<td contenteditable="true" style="' . ($customFlags['width'] ? $customStyle : '') . '">' . esc_html($row->width) . '</td>';
+        $html_table .= '<td contenteditable="true" style="' . ($customFlags['depth'] ? $customStyle : '') . '">' . esc_html($row->depth) . '</td>';
+        $html_table .= '<td contenteditable="true" style="' . ($customFlags['subSize'] ? $customStyle : '') . '">' . esc_html($row->subframe_size) . '</td>';
+        $html_table .= '<td contenteditable="true" style="' . ($customFlags['subQty'] ? $customStyle : '') . '">' . esc_html($row->subframe_qty) . '</td>';
+        $html_table .= '<td contenteditable="true">' . esc_html($row->louver_size) . '</td>';
+        $html_table .= '<td contenteditable="true">' . esc_html($row->louver_qty) . '</td>';
+        $html_table .= '<td contenteditable="true" style="' . ($customFlags['postSize'] ? $customStyle : '') . '">' . esc_html($row->post_size) . '</td>';
+        $html_table .= '<td contenteditable="true" style="' . ($customFlags['postQty'] ? $customStyle : '') . '">' . esc_html($row->post_qty) . '</td>';
+        $html_table .= '<td contenteditable="true">' . esc_html($row->soldiers) . '</td>';
+		$html_table .= '<td contenteditable="true">' . esc_html($row->color) . '</td>';
+		$html_table .= '<td>' . esc_html(implode(', ', $accessories)) . '</td>';
+        $html_table .= '<td contenteditable="true">' . esc_html($row->info) . '</td>';
+        $html_table .= '<td style="text-align:center;">
+            <span class="view-doc-button" data-rowid="' . esc_attr($row->id) . '" style="cursor:pointer; font-size:22px;" title="View Document">📁</span>
+        </td>';
+        $html_table .= '</tr>';
+    }
+
+    $html_table .= '</tbody></table></div>';
+
+    return $html_table;
+}
+
+/*Code that displays customer's orders in their profile page*/
+add_shortcode('customer_table', function() {
+    global $wpdb;
+
+    $id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+
+    if (!$id) {
+        return '<p>No customer ID provided in the URL.</p>';
+    }
+
+    // Use get_results to handle multiple rows from the join
+    $results = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT c.*, f.* 
+             FROM wp_custom_customers c
+             INNER JOIN wp_forecast_table f ON c.id = f.customer_id
+             WHERE c.id = %d",
+            $id
+        )
+    );
+	return generate_customer_forecast_table($results);
+});
+
+/*Code that displays customer's note in their profile page*/
+add_shortcode('show_customer_notes', function() {
+    global $wpdb;
+
+    $id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+
+    if (!$id) {
+        return '<p>No customer ID provided in the URL.</p>';
+    }
+
+    // Use get_results to handle multiple rows from the join
+    $results = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT c.*, n.* 
+             FROM wp_custom_customers c
+             INNER JOIN wp_customer_notes n ON c.id = n.customer_id
+             WHERE c.id = %d",
+            $id
+        )
+    );
+
+	 if (!$results) {
+        return '<p>No notes found for this customer.</p>';
+    }
+			
+  $html_table = '
+	<style>
+		/* Standalone table styles */
+		#notes_table {
+			border-collapse: collapse;  
+			width: 100%;
+			color: #333333;             
+			font-family: Roboto, sans-serif;
+		}
+		#notes_table th,
+		#notes_table td {
+			border: none;               
+			padding: 8px 12px;
+			text-align: left;          
+		}
+		#notes_table th {
+			font-weight: bold;
+		}
+		#notes_table tr {
+    		background-color: transparent !important;
+		}
+	</style>
+
+	<div>
+		<table id="notes_table">
+			<thead>
+				<tr>
+					<th>Timestamp</th>
+					<th>Type</th>
+					<th>Note</th>
+				</tr>
+			</thead>
+			<tbody>';
+
+	foreach ($results as $row) {
+		$style = '';
+		if ($row->note_type === 'service') {
+			$style = 'color: red;'; // red for service notes
+		}
+
+		$html_table .= '<tr>';
+		$html_table .= '<td style="' . $style . '">' . esc_html($row->timestamp) . '</td>';
+		$html_table .= '<td style="' . $style . '">[' . esc_html(strtoupper($row->note_type)) . ']</td>';
+		$html_table .= '<td style="' . $style . '">' . esc_html($row->note_content) . '</td>';
+		$html_table .= '</tr>';
+	}
+
+	$html_table .= '
+			</tbody>
+		</table>
+	</div>';
+
+	return $html_table;
+});
+
+
+/* ---------------------------- Save Customer Profile Data ---------------------------- */
+function ajax_data_block_client_profile() {
+    $nonce = wp_create_nonce('client_profile_nonce');
+    $ajax_url = admin_url('admin-ajax.php');
+    return "<div id='ajax-data-block-client-profile' data-nonce='{$nonce}' data-url='{$ajax_url}' style='display:none;'></div>";
+}
+add_shortcode('ajax_data_block_client_profile', 'ajax_data_block_client_profile');
+
+
+function save_client_profile() {
+ 
+	global $wpdb;
+
+    $messages = [];
+
+    if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'client_profile_nonce')) {
+        wp_send_json_error('Wrong token.');
+    } 
+
+    $payload = isset($_POST['data']) ? json_decode(stripslashes($_POST['data']), true) : [];
+    if (!$payload) {
+
+        wp_send_json_error('Payload is empty or invalid JSON.');
+    } 
+
+
+    $id          = isset($payload['id']) ? intval($payload['id']) : 0;
+    $first_name  = isset($payload['first_name']) ? sanitize_text_field($payload['first_name']) : '';
+    $last_name   = isset($payload['last_name']) ? sanitize_text_field($payload['last_name']) : '';
+    $email       = isset($payload['email']) ? sanitize_email($payload['email']) : '';
+    $postal_code = isset($payload['postal_code']) ? sanitize_text_field($payload['postal_code']) : '';
+    $phone_num   = isset($payload['phone_number']) ? sanitize_text_field($payload['phone_number']) : '';
+
+    if (empty($id)) {
+        wp_send_json_error('Client profile save: Missing or invalid customer ID.');
+    } 
+
+    $result = $wpdb->update(
+        'wp_custom_customers',
+        [
+            'postal_code'  => $postal_code,
+            'first_name'   => $first_name,
+            'last_name'    => $last_name,
+            'email'        => $email,
+            'phone_number' => $phone_num
+        ],
+        ['id' => $id],
+        ['%s','%s','%s','%s','%s'],
+        ['%d']
+    );
+
+    if ($result === false) {
+        $messages[] = 'Database update FAILED: ' . $wpdb->last_error;
+        wp_send_json_error($messages);
+    } elseif ($result === 0) {
+        $messages[] = 'Update executed, but no rows affected (data may be identical to current DB).';
+        wp_send_json_success($messages);
+    } else {
+        $messages[] = "Update successful. Rows affected: $result";
+        wp_send_json_success($messages);
+    }
+}
+add_action('wp_ajax_save_client_profile', 'save_client_profile');
+add_action('wp_ajax_nopriv_save_client_profile', 'save_client_profile');
+
+
+/* ========================================================================================================================================== */
+/*                                                       EMAIL TASK                                                                           */
+/* ========================================================================================================================================== */
 
 // Query DB for tasks due and send email
-function send_email($to, $subject, $message){
+function send_email($to, $subject, $message, $addToCalendar){
 	$start = urlencode(date('Ymd\THis\Z', strtotime($task->due_date . ' 09:00')));
 	$end = urlencode(date('Ymd\THis\Z', strtotime($task->due_date . ' 10:00')));
 	$details = urlencode("Reminder: Task due on {$task->date}");
 	$title = urlencode("Task: {$task->task}");
-	$calendar_link = "https://www.google.com/calendar/render?action=TEMPLATE&text=$title&dates=$start/$end&details=$details";
 	
-	$message .= "Add it to your <a href=\"$calendar_link\" target='_blank'>Google Calendar</a><br>";
+	if ($addToCalendar){
+		$calendar_link = "https://www.google.com/calendar/render?action=TEMPLATE&text=$title&dates=$start/$end&details=$details";
+		$message .= "Add it to your <a href=\"$calendar_link\" target='_blank'>Google Calendar</a><br>";	
+	}
 		
 	$headers = array('Content-Type: text/html; charset=UTF-8');
 	wp_mail($to, $subject, $message, $headers);
@@ -1550,7 +1818,7 @@ function send_task_reminder_emails() {
             continue; // Skip tasks not due tomorrow or overdue
         }
 
-        send_email($to, $subject, $message);
+        send_email($to, $subject, $message, true);
     }
 }
 add_action('send_daily_task_reminder', 'send_task_reminder_emails');
@@ -1618,7 +1886,6 @@ function add_spinner_loading() {
 }
 add_action('wp_footer', 'add_spinner_loading');
 
-
 function add_js_spinner() {
    ?>
     <script>
@@ -1635,8 +1902,4 @@ function add_js_spinner() {
     <?php
 }
 add_action('wp_footer', 'add_js_spinner');
-
 ?>
-
-
-
