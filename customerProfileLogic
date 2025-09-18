@@ -1,0 +1,441 @@
+<script>	
+var originalData;
+var orderNotification;
+/*Customer Profile*/	
+var title = document.getElementById('customer_profile_name');
+var first_name = document.getElementById('customer_first_name');
+var last_name = document.getElementById('customer_last_name');
+var email = document.getElementById('customer_email');
+var postal_code = document.getElementById('customer_postal_code');
+var phone_number = document.getElementById('customer_phone_number');
+var saveProfilBtn = document.getElementById('customer_info_save_btn');
+/*Orders*/
+var forecastTableContainer = document.getElementById('customer_forecast_table');	
+var saveOrdersBtn = document.getElementById('customer_orders_save_btn');
+var notifyTeamBtn = document.getElementById('notify_team_btn');
+var notifyCustomerBtn = document.getElementById('status_update_btn');
+var teamSelected = document.getElementById('team_selection');
+var orderStatus = document.getElementById('order_status');
+var trigger = document.getElementById('customer_file_trigger');
+var input = document.getElementById('customer_profile_images');
+var fileList = document.getElementById('customer_file_list');
+/*Notes*/	
+var addNoteBtn = document.getElementById('customer_profile_add_note_btn');
+
+
+//order_status_notification from data
+	
+	
+document.addEventListener('DOMContentLoaded', function () {
+	//Doc picker
+	trigger.addEventListener('click', function() {
+		if (input) {
+			input.click();
+		}
+	});
+	
+input.addEventListener('change', function() {
+    if (input.files.length === 0) {return;}
+
+    var files = Array.prototype.slice.call(input.files);
+    for (var i = 0; i < files.length; i++) {
+        fileList.appendChild(createFileItem(files[i].name, function() {
+            if (fileList.children.length === 0) {fileList.textContent = 'No file selected';}
+        }));
+    }
+
+    input.value = '';
+});
+
+	
+	
+	
+	if (teamSelected && teamSelected.value === 'none') {
+		notifyTeamBtn.disabled = true;
+	}
+		
+/*EVENT LISTENER*/	
+	teamSelected.addEventListener('change', function(){
+		if (teamSelected.value){
+			notifyTeamBtn.disabled = false;
+		}
+	});
+	
+	saveProfilBtn.addEventListener('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		saveCustomerProfil();
+	});
+	
+	saveOrdersBtn.addEventListener('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		saveCustomerOrders();
+	});
+	
+	notifyTeamBtn.addEventListener('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		openPopup(4625);
+	});
+	
+	notifyCustomerBtn.addEventListener('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		console.log('Clicked Notify Customer');
+	});
+	
+	
+	addNoteBtn.addEventListener('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		openPopup(4837);
+	});
+	
+	var id = getIdFromUrl();
+	if (id){
+		loadCustomerData(id);
+	}else{
+		console.log("No Id retrieved");
+	}
+});
+	
+function getIdFromUrl(){
+  var query = window.location.search.substring(1); 
+	var vars = query.split('&');
+	for (var i = 0; i < vars.length; i++) {
+		var pair = vars[i].split('=');
+		if (pair[0] === 'id') {
+			return decodeURIComponent(pair[1]);
+		}
+	}
+	return null;
+  }
+	
+	
+function populatePage(data){	
+	
+	if (!first_name || !last_name || !email || !postal_code || !phone_number || !fileList ){return;}
+	
+	if (title){
+		title.textContent = (data.first_name || '') + ' '+ (data.last_name || '');
+		}
+
+	first_name.value = data.first_name || '';
+	last_name.value = data.last_name || '';
+	email.value = data.email || '';
+	postal_code.value = data.postal_code || '';
+	phone_number.value = data.phone_number || '';
+	
+	//Right now we assume first forecast
+	teamSelected.value = data.forecasts[0].team_assigned ? data.forecasts[0].team_assigned : 'none';
+	orderStatus.value = data.forecasts[0].order_status ? data.forecasts[0].order_status : 'none';
+	orderNotification = data.forecasts[0].order_status_notification ? data.forecasts[0].order_status_notification : 'none';
+
+	if (data.forecasts[0].image_url){
+			loadDocs(data.forecasts[0].image_url);
+	}
+
+  renderForecastTable(data);
+	
+	hideLoading();	
+}
+
+
+function loadDocs(docs) {
+    if (!Array.isArray(docs)) {docs = [];}
+    for (var i = 0; i < docs.length; i++) {
+        fileList.appendChild(createFileItem(docs[i], function() {
+            if (fileList.children.length === 0) {fileList.textContent = 'No file selected';}
+        }, true)); // true = it's a URL
+    }
+}
+// Helper to create a list item for a file or URL
+function createFileItem(nameOrUrl, onRemove, isUrl) {
+    var div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.marginBottom = '4px';
+
+    var nameElement;
+    if (isUrl) {
+        // Create clickable link
+        nameElement = document.createElement('a');
+        nameElement.textContent = nameOrUrl.substring(nameOrUrl.lastIndexOf('/') + 1); // just the filename
+        nameElement.href = '#';
+        nameElement.style.color = 'blue';
+        nameElement.style.textDecoration = 'underline';
+        nameElement.style.flex = '1';
+    } else {
+        // Just a span for local files
+        nameElement = document.createElement('span');
+        nameElement.textContent = nameOrUrl;
+        nameElement.style.flex = '1';
+    }
+
+		nameElement.addEventListener('click', function(e) {
+			e.preventDefault(); // prevent default anchor behavior
+			window.open(nameOrUrl, '_blank', 'noopener,noreferrer'); // open in new tab/window
+	});
+	
+    var removeBtn = document.createElement('button');
+    removeBtn.textContent = '❌';
+    removeBtn.style.color = 'red';
+    removeBtn.style.border = 'none';
+    removeBtn.style.background = 'transparent';
+    removeBtn.style.cursor = 'pointer';
+    removeBtn.style.marginLeft = '8px';
+
+    removeBtn.addEventListener('click', function() {
+        div.remove();
+        if (typeof onRemove === 'function') {onRemove();}
+    });
+
+    div.appendChild(nameElement);
+    div.appendChild(removeBtn);
+
+    return div;
+}
+	
+function openPopup(popupId) {
+    if (typeof elementorProFrontend === 'undefined') return;
+    if (!elementorProFrontend.modules || !elementorProFrontend.modules.popup) return;
+    elementorProFrontend.modules.popup.showPopup({id: popupId});
+}
+	
+
+function loadCustomerData(id){
+    showLoading();
+
+    fetch('/wp-json/myplugin/v1/customer/' + encodeURIComponent(id), {
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(function(response) {
+        if (response.status === 404) {
+            hideLoading();
+            console.log("No profile found");
+            return null;
+        }
+        if (!response.ok) {
+            hideLoading();
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(function(data){
+        if (!data) {return;}
+        originalData = JSON.parse(JSON.stringify(data));
+        populatePage(data);
+        hideLoading();
+    })
+    .catch(function(err){
+        hideLoading();
+        console.error('Error loading profile:', err);
+    });
+}
+
+	
+function isValueDifferent(data, formName){
+	if (formName === 'client'){
+			if (first_name && first_name.value !== data.first_name){
+			return true;
+		}
+
+		if (last_name && last_name.value !== data.last_name){
+			return true;
+		}
+
+		if (phone_number && phone_number.value !== data.phone_number){
+			return true;
+		}
+
+		if (postal_code && postal_code.value !== data.postal_code){
+			return true;
+		}
+
+		if (email && email.value !== data.email){
+			return true;
+		}
+	}else if(formName === 'order'){
+		if (teamSelected && teamSelected.value !== data.team){
+			return true;
+		}
+		if (orderStatus && orderStatus.value !== data.orderStatus){
+			return true;
+		}
+	}
+	
+	return false;
+}	
+	
+function saveCustomerProfil(){
+	var ajaxDataDiv = document.getElementById('ajax-data-block-client-profile');
+	var ajaxNonce = ajaxDataDiv.getAttribute('data-nonce');
+
+	var isChange = isValueDifferent(originalData, 'client');
+
+	if (isChange) {
+		showLoading();
+		var newData = {
+			'first_name':first_name.value,
+			'last_name':last_name.value,
+			'postal_code':postal_code.value,
+			'email':email.value,
+			'phone_number':phone_number.value,
+			'id' : originalData.id
+		};
+
+		// Send the AJAX request
+		fetch('/wp-admin/admin-ajax.php', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded'
+			},
+			body: new URLSearchParams({
+				action: 'save_client_profile',
+				_wpnonce: ajaxNonce,
+				data: JSON.stringify(newData)
+			})
+		}).then(function(response) {
+			return response.json();
+			// Parse response as JSON
+		}).then(function(data) {
+			hideLoading();
+			if (data && data.success) {
+				location.reload();
+				alert('Customer\'s info successfully saved!');
+			} else {
+				console.log('error while saving');
+				alert('Error while saving your table: ' + data.data);
+			}
+		}).catch(function(error) {
+			hideLoading();
+			console.log('fetch error');
+			alert('Fetch error:', error);
+			console.error('Fetch error:', error);
+		});
+	} else{
+		hideLoading();
+		alert('No changes detected.');
+	}
+}
+
+function saveCustomerOrders(){
+	var ajaxDataDiv = document.getElementById('ajax-data-block-client-profile');
+	var ajaxNonce = ajaxDataDiv.getAttribute('data-nonce');
+
+	var isChange = isValueDifferent(originalData, 'order');
+	
+	if (isChange) {
+		showLoading();
+		var newData = {
+			'orderStatus':orderStatus.value,
+			'teamSelected':teamSelected.value,
+			'id' : originalData.id
+		};
+
+		// Send the AJAX request
+		fetch('/wp-admin/admin-ajax.php', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded'
+			},
+			body: new URLSearchParams({
+				action: 'save_client_profile',
+				_wpnonce: ajaxNonce,
+				data: JSON.stringify(newData)
+			})
+		}).then(function(response) {
+			return response.json();
+			// Parse response as JSON
+		}).then(function(data) {
+			hideLoading();
+			if (data && data.success) {
+				location.reload();
+				alert('Customer\'s order successfully saved!');
+			} else {
+				console.log('error while saving');
+				alert('Error while saving your table: ' + data.data);
+			}
+		}).catch(function(error) {
+			hideLoading();
+			console.log('fetch error');
+			alert('Fetch error:', error);
+			console.error('Fetch error:', error);
+		});
+	} else{
+		hideLoading();
+		alert('No changes detected.');
+	}
+}	
+	
+function renderForecastTable(data){
+	var html = '<div class="mrpergola-table-container">';
+    html += '<table id="customer_table" class="mrpergola-table display">';
+    html += '<thead><tr>';
+	  html += '<th colspan="1"></th><th colspan="1"></th>';
+    html += '<th colspan="2">Date</th><th colspan="2"></th>';
+    html += '<th colspan="2">Frames</th><th colspan="2">Subframes</th>';
+    html += '<th colspan="2">Louvers</th><th colspan="2">Posts</th>';
+    html += '<th colspan="5"></th></tr>';
+
+    html += '<tr>';
+		html += '<th class="mrpergola-col-xsmall"></th>';
+    html += '<th class="mrpergola-col-xsmall">Submit</th>';
+    html += '<th class="mrpergola-col-xsmall">Due</th>';
+    html += '<th style="width:2%">Mdl</th>';
+    html += '<th style="width:2%">Type</th>';
+    html += '<th style="width:2%">Wdt</th>';
+    html += '<th style="width:2%">Dpt</th>';
+    html += '<th class="mrpergola-col-xsmall">Lgt</th>';
+    html += '<th class="mrpergola-col-xsmall">Qty</th>';
+    html += '<th class="mrpergola-col-xsmall">Lgt</th>';
+    html += '<th class="mrpergola-col-xsmall">Qty</th>';
+    html += '<th style="width:6%">Lgt</th>';
+    html += '<th style="width:6%">Qty</th>';
+    html += '<th class="mrpergola-col-xsmall">Slds</th>';
+    html += '<th class="mrpergola-col-xsmall">Color</th>';
+    html += '<th class="mrpergola-col-xsmall">Extras</th>';
+    html += '<th>Info</th>';
+    html += '</tr></thead><tbody>';
+
+    var customStyle = 'color: blue;';
+
+    for (var i = 0; i < data.forecasts.length; i++) {
+        var forecast = data.forecasts[i];
+        var accessories = forecast.accessories || [];
+        var customFlags = forecast.custom_fields;
+
+        var formattedEntryDate = forecast.entry_date ? (new Date(forecast.entry_date)).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit' }) : '';
+        var formattedDueDate = forecast.due_date ? (new Date(forecast.due_date)).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit' }) : '';
+
+			 html += '<tr data-id="' + forecast.id + '">';
+				html += '<td><input type="checkbox" class="forecast-select" value="' + forecast.id + '"></td>';
+        html += '<td>' + formattedEntryDate + '</td>';
+        html += '<td contenteditable="true">' + (forecast.due_date ? formattedDueDate : '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.model || '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.model_type || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.width) ? customStyle : '') + '">' + (forecast.width || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.depth) ? customStyle : '') + '">' + (forecast.depth || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.subSize) ? customStyle : '') + '">' + (forecast.subframe_size || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.subQty) ? customStyle : '') + '">' + (forecast.subframe_qty || '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.louver_size || '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.louver_qty || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.postSize) ? customStyle : '') + '">' + (forecast.post_size || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.postQty) ? customStyle : '') + '">' + (forecast.post_qty || '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.soldiers || '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.color || '') + '</td>';
+        html += '<td>' + (accessories.join(', ')) + '</td>';
+        html += '<td contenteditable="true">' + (forecast.info || '') + '</td>';
+        html += '</tr>';
+    }
+
+    html += '</tbody></table></div>';
+    if (forecastTableContainer) {
+        forecastTableContainer.innerHTML = html;
+    }
+}	
+	
+	
+
+</script>	
