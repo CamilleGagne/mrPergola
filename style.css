@@ -1,94 +1,94 @@
 @media screen and (max-width:385px){
-.filter-gallery-sec .elementor-gallery-title:last-child{
+	.filter-gallery-sec .elementor-gallery-title:last-child{
 margin-top:10px;	
 }
-  .mr-cont-frm span.gf_step_label {
-  font-size: 12px !important;
-  line-height: 16px !important;
-  font-weight: 400 !important;
-  text-transform: capitalize !important;
+		.mr-cont-frm span.gf_step_label {
+    font-size: 12px !important;
+    line-height: 16px !important;
+    font-weight: 400 !important;
+    text-transform: capitalize !important;
 }
 }
 
 @media screen and (min-width:386px){
-.mr-cont-frm span.gf_step_label {
-  font-size: 16px !important;
-  line-height: 16px !important;
-  font-weight: 400 !important;
-  text-transform: capitalize !important;
+	.mr-cont-frm span.gf_step_label {
+    font-size: 16px !important;
+    line-height: 16px !important;
+    font-weight: 400 !important;
+    text-transform: capitalize !important;
 }
 }
 
 @media screen and (max-width:767px){
-.swiper-zoom-container{
-  margin:0 20px;
-}
-.post-cont-sec h2{
-font-size:30px!important;
-line-height:40px!important;
-font-weight:700!important;
-color:#000!important;
-letter-spacing:0!important;
-}
-.post-cont-sec h3{
-font-size:25px!important;
-line-height:35px!important;
-font-weight:700!important;
-color:#000!important;
-letter-spacing:0!important;
-}
-.mr-cont-frm .gf_page_steps {
-  justify-content: space-between !important;
-  display: flex !important;
-  flex-wrap: unset !important;
+	.swiper-zoom-container{
+		margin:0 20px;
+	}
+	.post-cont-sec h2{
+	font-size:30px!important;
+	line-height:40px!important;
+	font-weight:700!important;
+	color:#000!important;
+	letter-spacing:0!important;
+	}
+	.post-cont-sec h3{
+	font-size:25px!important;
+	line-height:35px!important;
+	font-weight:700!important;
+	color:#000!important;
+	letter-spacing:0!important;
+	}
+	.mr-cont-frm .gf_page_steps {
+    justify-content: space-between !important;
+    display: flex !important;
+    flex-wrap: unset !important;
 }
 }
 @media screen and (min-width:768px){
-.post-cont-sec h2{
-font-size:40px!important;
-line-height:50px!important;
-font-weight:700!important;
-color:#000!important;
-letter-spacing:0!important;
-}
-.post-cont-sec h3{
-font-size:30px!important;
-line-height:40px!important;
-font-weight:700!important;
-color:#000!important;
-letter-spacing:0!important;
-}
+	.post-cont-sec h2{
+	font-size:40px!important;
+	line-height:50px!important;
+	font-weight:700!important;
+	color:#000!important;
+	letter-spacing:0!important;
+	}
+	.post-cont-sec h3{
+	font-size:30px!important;
+	line-height:40px!important;
+	font-weight:700!important;
+	color:#000!important;
+	letter-spacing:0!important;
+	}
 }
 @media (min-width: 1025px){
-.desk-none{
-  display: none !important;
-}
+	.desk-none{
+		display: none !important;
+	}
 }
 .elementor-lightbox .elementor-lightbox-image{
-image-orientation:unset!important;
+	image-orientation:unset!important;
 }
 
 
 .professional-text a{
-color:#000;
+	color:#000;
 }
 
 .contact-nospace{
-padding-top:10px;
+	padding-top:10px;
 }
 
 
 .d-flex-footer .elementor-icon-box-wrapper{
-display:flex;
-gap:20px;
+	display:flex;
+	gap:20px;
 }
 .cont-card img{
-  height: 100px;
-  object-fit: contain
+    height: 100px;
+    object-fit: contain
 }
 .mb-zero{
-  margin-bottom: 0;
-  padding-bottom: 5px
+    margin-bottom: 0;
+    padding-bottom: 5px
 }
 .post-cont-sec p{
 font-size:18px!important;
@@ -108,82 +108,82 @@ min-height:100px;
 
 /*table css*/
 .black-bg{
-  background: black !important;
-  color: white;
+    background: black !important;
+    color: white;
 }
 .sizes-table .black-bg th{
-  border: 1px solid white !important;
+    border: 1px solid white !important;
 }
 .sizes-table th,
 .sizes-table td{
-  background-color: transparent !important;
-  border: none !important;
+    background-color: transparent !important;
+    border: none !important;
 }
 .note {
-  text-align: center;
-  padding-top: 5px;
+    text-align: center;
+    padding-top: 5px;
 }
 
 
 
 
 @media screen and (min-width:768px){
-  .sizes-table th.vertical-text {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  text-align: center;
-  width: 52px !important;
-  /*background-color: black !important;*/
-  }
+    .sizes-table th.vertical-text {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-align: center;
+    width: 52px !important;
+    /*background-color: black !important;*/
+    }
 }
 @media screen and (max-width:767px){
-  .sizes-table th.vertical-text {
-      position: relative;
-      width: 50px !important;
-  }
-  .sizes-table th.vertical-text p{
-      transform: rotate(-90deg);
-      width: 165px;
-      position: absolute;
-      top: 50%;
-      left: -57px;
-  }
+    .sizes-table th.vertical-text {
+        position: relative;
+        width: 50px !important;
+    }
+    .sizes-table th.vertical-text p{
+        transform: rotate(-90deg);
+        width: 165px;
+        position: absolute;
+        top: 50%;
+        left: -57px;
+    }
 }
 @media screen and (max-width:555px){
-  .sizes-table th.vertical-text p{
-      left: -67px !important;
-  }
-
-.down-btn a{
-  font-size:13px!important;
-  padding:10px 6px!important;
-  letter-spacing:0!important;
-}
+    .sizes-table th.vertical-text p{
+        left: -67px !important;
+    }
+	
+	.down-btn a{
+		font-size:13px!important;
+		padding:10px 6px!important;
+		letter-spacing:0!important;
+	}
 }
 
 .sizes-table th.vertical-text p{
-  margin: 0 !important;
-  padding: 0;
+    margin: 0 !important;
+    padding: 0;
 }
 .sizes-table table td {
-  min-width: 85px;
-  text-align: center;
+    min-width: 85px;
+    text-align: center;
 }
 .sizes-table {
-  overflow: hidden;
-  overflow-x: auto;
-  margin-bottom: 20px;
+    overflow: hidden;
+    overflow-x: auto;
+    margin-bottom: 20px;
 }
 .sizes-table tr:nth-child(odd):not(:first-child) {
-      background-color: #E5E5E5;
-  }
-  /*.sticky-column {*/
-  /*    position: sticky;*/
-  /*    left: 0;*/
-  /*    z-index: 2;*/
-  /*}*/
-  
-  
+        background-color: #E5E5E5;
+    }
+    /*.sticky-column {*/
+    /*    position: sticky;*/
+    /*    left: 0;*/
+    /*    z-index: 2;*/
+    /*}*/
+    
+    
 /*    @supports (-webkit-touch-callout: none) {*/
 /*    .sizes-table th .vertical-text p{*/
 /*        transform: rotate(-90deg) !important;*/
@@ -196,40 +196,40 @@ min-height:100px;
 
 /*table css end*/
 .table-custom {
-font-family: "Roboro", Sans-serif;
-  padding = 0px !important;
+	font-family: "Roboro", Sans-serif;
+		padding = 0px !important;
 }
 
 .table-custom thead {
-background-color: #000;
-color: #fff;
-text-align: center;
+  background-color: #000;
+  color: #fff;
+	text-align: center;
 }
 
 .table-custom thead th {
-background-color: #000;
-color: #fff;
-text-align: center;
-vertical-align: middle !important;
+  background-color: #000;
+  color: #fff;
+  text-align: center;
+	vertical-align: middle !important;
 }
 
 table.table-custom th,
 table.table-custom td {
-  padding: 8px !important;
+    padding: 8px !important;
 }
-
 
 [id*="fixlistTable"],
 [id*="forecastTable"],
-[id*="todoTable"]{
-  font-family: "Roboto", Sans-serif;
-  font-size:
+[id*="todoTable"],
+[id*="customersTable"]{
+    font-family: "Roboto", Sans-serif;
+		font-size:
 }
 
 
 /*hide form elements like button or fields*/
 .hide-form-element .elementor-button {
-  display: none !important;
+    display: none !important;
 }
 
 /* Resize text around the data tables */
@@ -238,63 +238,63 @@ table.table-custom td {
 .dataTables_length input,
 .dataTables_paginate .paginate_button,
 .dataTables_paginate .previous, .dataTables_paginate .next {
-  font-size: 12px; 
-  padding: 8px;
+    font-size: 12px; 
+	  padding: 8px;
 }
 
 .dataTables_length label {
-display: inline-flex;
-align-items: center;
-gap: 5px; 
+  display: inline-flex;
+  align-items: center;
+  gap: 5px; 
 }
 
 
 /* Forms password screen */
 .post-password-form {
-max-width: 400px;
-margin: 100px auto;
-padding: 20px;
-text-align: center;
-font-family: 'Roboto', sans-serif;
-display: flex;
-flex-direction: column;
-align-items: center; /* Center everything */
+  max-width: 400px;
+  margin: 100px auto;
+  padding: 20px;
+  text-align: center;
+  font-family: 'Roboto', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center everything */
 }
 
 /* Align label next to the password input */
 .post-password-form .password-container {
-display: flex;
-align-items: center; /* Ensures password input and label are vertically centered */
-margin-bottom: 20px; /* Adds space below the input field */
+  display: flex;
+  align-items: center; /* Ensures password input and label are vertically centered */
+  margin-bottom: 20px; /* Adds space below the input field */
 }
 
 .post-password-form label {
-margin-right: 10px; /* Spacing between label and password input */
-font-size: 16px;
-line-height: 1.5;
+  margin-right: 10px; /* Spacing between label and password input */
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 /* Password input field */
 .post-password-form input[type="password"] {
-width: 100%;
-max-width: 300px;
-padding: 10px;
-margin: 0;
-box-sizing: border-box;
-font-family: 'Roboto', sans-serif;
+  width: 100%;
+  max-width: 300px;
+  padding: 10px;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
 }
 
 /* Button should be half the width of the password input */
 .post-password-form input[type="submit"] {
-width: 50%; /* Half the width of the password input */
-max-width: 150px;
-padding: 10px;
-margin-top: 20px; /* Adds space between the password field and the button */
-background-color: #000;
-color: #fff;
-border: none;
-cursor: pointer;
-box-sizing: border-box;
+  width: 50%; /* Half the width of the password input */
+  max-width: 150px;
+  padding: 10px;
+  margin-top: 20px; /* Adds space between the password field and the button */
+  background-color: #000;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-sizing: border-box;
 }
 
 
@@ -302,238 +302,670 @@ box-sizing: border-box;
 .elementor-form input:disabled,
 .elementor-form select:disabled,
 .elementor-form textarea:disabled {
-background-color: #f0f0f0 !important;
-color: #888 !important;
-cursor: not-allowed !important;
-opacity: 1 !important;
+  background-color: #f0f0f0 !important;
+  color: #888 !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
 }
 /* Optional: grey out labels */
 .elementor-form label.disabled-label {
-color: #888 !important;
+  color: #888 !important;
 }
 
 /*Elementor form messages*/
 .elementor-message.elementor-message-success {
-background-color: #d4edda;
-color: #155724;
-padding: 15px;
-font-size: 14px;
-border-radius: 8px;
-font-weight: bold;
-width:33%;
+  background-color: #d4edda;
+  color: #155724;
+  padding: 15px;
+  font-size: 14px;
+  border-radius: 8px;
+  font-weight: bold;
+	width:33%;
 }
 
 .elementor-message.elementor-message-danger {
-background-color: #f8d7da;
-color: #721c24;
-padding: 15px;
-font-size: 14px;
-border-radius: 8px;
-font-weight: bold;
-width:33%;
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 15px;
+  font-size: 14px;
+  border-radius: 8px;
+  font-weight: bold;
+	width:33%;
 }
 
 .transparent-btn a{
-background:transparent!important;
-border: 2px solid black;
-color:black!important;
-padding:10px 24px!important;
+	background:transparent!important;
+	border: 2px solid black;
+	color:black!important;
+	padding:10px 24px!important;
+}
+/* =========================
+   MR Pergola – Table Styles
+   ========================= */
+.mrpergola-table-container { 
+    overflow-x:auto; 
+    margin:20px 0; 
+}
+
+.mrpergola-table { 
+    width:100%; 
+    border-collapse: separate; 
+    border-spacing: 0; 
+    font-family: Roboto, sans-serif; 
+    font-size:14px; 
+    line-height:1 !important; 
+    border: 1px solid #e0e0e0;
+    border-radius: 8px; 
+    overflow: hidden; 
+    text-align:center; 
+}
+
+/* force all header cell borders to be black */
+.mrpergola-table thead th {
+    border-right: 1px solid #000 !important;
+    border-bottom: 1px solid #000 !important;
+}
+
+/* remove the right border on the last th in each row */
+.mrpergola-table thead th:last-child {
+    border-right: none !important;
+}
+
+.mrpergola-table td { 
+    border-right: 1px solid #e0e0e0; 
+}
+
+.mrpergola-table td:last-child { 
+    border-right: none; 
+}
+
+.mrpergola-table tbody tr td {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* bottom border for last row only */
+.mrpergola-table tbody tr:last-child td { 
+    border-bottom: none;
+}
+
+.mrpergola-table th { 
+    background:#202124; 
+    color:#fff; 
+    padding:5px 5px; 
+		font-size:13px;
+    border-bottom: 1px solid #e0e0e0; 
+		line-height:1;
+	  text-align:center; 
+    vertical-align: middle;  
+    text-transform: uppercase; 
+}
+
+.mrpergola-table td { 
+    padding:5px 10px; 
+    text-align:center; 
+    vertical-align: middle; 
+		line-height:1.2;
+	  color: #333; 
+}
+
+.mrpergola-table tr:nth-child(odd) { 
+    background-color:#ffffff; 
+}
+
+.mrpergola-table tr:nth-child(even) { 
+    background-color:#f7f7f7; 
+}
+
+.mrpergola-table tr:hover { 
+    background-color: #eaeaea; 
+    transition: background-color 0.2s ease-in-out;  
+}
+
+.mrpergola-col-xsmall {width:5%;}
+.mrpergola-col-small {width:8%;}
+.mrpergola-col-medium {width:10%;}
+.mrpergola-col-large {width:15%;}
+
+
+/* =========================
+   MR Pergola – Global Form Styles
+   ========================= */
+
+/* Marges utilitaires */
+
+body .mrpergola-form-group.mb-5 {
+    margin-bottom: 20px;
+}
+
+body .mrpergola-form-group.mb-8 {
+    margin-bottom: 8px !important;
+}
+
+/* Masquer éléments */
+.hidden {
+    display: none !important;
+}
+
+/* Limite largeur date */
+body .due-date {
+    max-width: 400px !important;
+}
+
+/* Formulaire principal */
+body .mrpergola-custom-form {
+    /*max-width: 900px !important;*/
+    margin: 30px auto !important;
+    font-family: 'Roboto', sans-serif !important;
+    color: #333 !important;
+}
+
+/* Colonnes du formulaire */
+body .mrpergola-form-columns {
+    display: flex !important;
+    gap: 70px !important;
+    flex-wrap: wrap !important;
+}
+
+body .mrpergola-form-column {
+    flex: 1 !important;
+    min-width: 280px !important;
+}
+
+/* Sections */
+body .mrpergola-form-section {
+    background: #f9f9f9 !important;
+    padding: 25px 30px !important;
+    margin-bottom: 30px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+}
+
+body .mrpergola-form-section h2 {
+    margin-bottom: 20px !important;
+    color: #2c3e50 !important;
+    border-bottom: 2px solid #ddd !important;
+    padding-bottom: 5px !important;
+    font-size: 28px !important;
+}
+
+body .mrpergola-form-section h3 {
+    margin-top: 15px !important;
+    margin-bottom: 10px !important;
+    color: #34495e !important;
+    font-size: 20px !important;
+    text-align: left !important;
+}
+
+/* Groupes de champs */
+body .mrpergola-form-group {
+    display: flex !important;
+    align-items: flex-start !important;
+    margin-bottom: 20px !important;
+    color: grey !important;
+    gap: 10px !important;
+}
+
+body .mrpergola-form-group-small {
+    display: flex !important;
+    align-items: flex-start !important;
+    margin-bottom: 20px !important;
+    color: grey !important;
+    gap: 10px !important;
+		width:50%;
+}
+
+body .mrpergola-form-group label,
+body .mrpergola-form-group-small label{
+    width: 80px !important;
+    margin-right: 15px !important;
+    text-align: right !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    color: grey !important;
+    display: block !important;
+    margin-bottom: 6px !important;
+    padding-top: 11px !important;
+}
+
+/* Labels pour checkbox à l’intérieur d’un div */
+body .mrpergola-form-group div label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-weight: normal !important;
+}
+
+/* Champs input/select */
+body .mrpergola-form-group input,
+body .mrpergola-form-group select,
+body .mrpergola-form-group textarea,
+body .mrpergola-form-group-small input,
+body .mrpergola-form-group-small select,
+body .mrpergola-form-group-small textarea{
+    flex: 1 !important;
+    padding: 8px 12px !important;
+    border: 1px solid #ccc !important;
+    border-radius: 6px !important;
+    transition: 0.2s !important;
+    color: grey !important;
+}
+
+/* Placeholder */
+body .mrpergola-form-group input::placeholder,
+body .mrpergola-form-group select::placeholder,
+body .mrpergola-form-group-small input::placeholder,
+body .mrpergola-form-group-small select::placeholder {
+    color: grey !important;
+    opacity: 1 !important;
+}
+
+/* Focus */
+body .mrpergola-form-group input:focus,
+body .mrpergola-form-group select:focus,
+body .mrpergola-form-group-small input:focus,
+body .mrpergola-form-group-small select:focus {
+    border-color: #3498db !important;
+    outline: none !important;
+    box-shadow: 0 0 4px rgba(52, 152, 219, 0.3) !important;
+}
+
+/* Champs désactivés */
+body .mrpergola-form-group input:disabled,
+body .mrpergola-form-group select:disabled,
+body .mrpergola-form-group button:disabled,
+body .mrpergola-form-group-small input:disabled,
+body .mrpergola-form-group-small select:disabled,
+body .mrpergola-form-group-small button:disabled{
+    background-color: #e0e0e0 !important;
+		border-color:#e0e0e0; !important
+    color: grey !important;
+    cursor: not-allowed !important;
+    opacity: 1 !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+}
+
+/* Full width */
+body .mrpergola-form-group.full-width {
+    display: block !important;
+}
+
+body .mrpergola-form-group.full-width > div {
+    margin-bottom: 8px !important;
+}
+
+body .mrpergola-form-group.full-width div label input[type="checkbox"] {
+    margin: 0 !important;
+}
+
+/* Checkboxes verticales */
+body .mrpergola-form-group .checkboxes {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 5px !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+/* Align each checkbox and label consistently */
+.mrpergola-form-group .checkboxes label {
+    display: flex !important;
+    align-items: center !important;    /* vertical center checkbox + text */
+    gap: 8px !important;               /* space between checkbox and text */
+    width: auto !important;            /* ignore parent label width */
+    margin: 0 !important;              /* remove extra spacing */
+    padding: 0 !important;
+}
+
+/* Make checkbox itself align properly */
+.mrpergola-form-group .checkboxes input[type="checkbox"] {              
+    padding: 0 !important;
+    vertical-align: middle;            /* align with label text */
+}
+
+
+.notesTable {
+	border-collapse: collapse;  
+	width: 100%;
+	color: #333333;             
+	font-family: Roboto, sans-serif;
+}
+.notesTable th,
+.notesTable td {
+	border: none;               
+	padding: 8px 10px;
+	text-align: left;          
+}
+.notesTable th {
+	font-weight: bold;
+}
+.notesTable tr {
+	background-color: transparent !important;
+}
+.notes-table-wrapper {
+	max-height: 400px;
+	overflow-y: auto;
+	border: 1px solid #ddd;
+	padding: 5px;
+}
+
+
+/* =========================
+   MR Pergola – Buttons Form Styles
+   ========================= */
+
+.mrpergola-submit-btn{
+    background-color: #3498db;
+    color: white;
+    padding: 5px 35px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: roboto, Sans-Serif;
+    font-size: 20px;
+    transition: 0.2s;
+    display: block;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.mrpergola-submit-btn:hover {
+    background-color: #1f5a82 !important;
+    color: white !important;
+}
+
+.mrpergola-submit-btn:disabled {
+    background-color: #e0e0e0!important;
+    color: white !important;
+}
+
+.mrpergola-submit-btn:focus,
+.mrpergola-submit-btn:active {
+  background-color: #3498db;
+    color: white;
+    padding: 5px 35px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: roboto, Sans-Serif;
+    font-size: 20px;
+    transition: 0.2s;
+    display: block;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.notification-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  background-color: #7A7A7A;   
+	border: 1px solid #7A7A7A;    
+  border-radius: 6px;      
+	color: #fff;                   
+  font-weight: 500;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.9rem;     
+  padding: 0.4rem 0.8rem;       
+  min-width: 36px;
+  min-height: 32px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, 
+              border-color 0.15s ease, 
+              box-shadow 0.15s ease,
+              transform 0.1s ease;
+}
+
+/* Hover */
+.notification-btn:hover {
+  background-color: #555;
+  border-color: #555;
+}
+
+.notification-btn:hover:not([disabled]) {
+  background-color: #555;
+  border-color: #555;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
+}
+
+.notification-btn:focus,
+.notification-btn:active {
+  background-color: #7A7A7A;
+  border-color: #7A7A7A;
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+
+/* Responsive */
+@media (max-width: 768px) {
+  .mrpergola-form-columns {
+    flex-direction: column;
+  }
+
+.mrpergola-form-section h3 {
+  text-align: center;
+}
+
+  .mrpergola-form-group,
+  .mrpergola-form-group.grid,
+  .mrpergola-form-group.full-width {
+    flex-direction: column;
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .mrpergola-form-group label {
+    width: 100%;
+    margin-bottom: 5px;
+    text-align: left;
+  }
+
+  .mrpergola-form-group.grid input,
+  .mrpergola-form-group.grid select {
+    width: 100%;
+  }
 }
 
 
 /* contact gravity form css */
 
 .mr-cont-frm label {
-  font-size: 16px !important;
-  line-height: 16px !important;
-  color: #333333 !important;
-  font-weight: 400 !important;
+    font-size: 16px !important;
+    line-height: 16px !important;
+    color: #333333 !important;
+    font-weight: 400 !important;
 }
 .mr-cont-frm select{
-font-size: 16px !important;
+	font-size: 16px !important;
 }
 
 .mr-cont-frm input::placeholder, .mr-cont-frm textarea::placeholder {
-  color: #808080db !important;
-  font-size: 16px !important;
-  line-height: 16px !important;
+    color: #808080db !important;
+    font-size: 16px !important;
+    line-height: 16px !important;
 }
 
 .mr-cont-frm input, .mr-cont-frm textarea {
-  font-size: 15px !important;
-  line-height: 21px !important;
-  font-weight: 400 !important;
-  color: #333333 !important;
-  padding: 10px 15px !important;
-border: 1px solid #69727d !important;
+    font-size: 15px !important;
+    line-height: 21px !important;
+    font-weight: 400 !important;
+    color: #333333 !important;
+    padding: 10px 15px !important;
+	border: 1px solid #69727d !important;
 /* 	min-height:40px; */
 }
 
 .mr-cont-frm input{
-min-height:40px;
+	min-height:40px;
 }
 
 .gform_confirmation_message {
-  font-size: 20px;
-  text-align: center;
-  line-height: 26px;
+    font-size: 20px;
+    text-align: center;
+    line-height: 26px;
 }
 
 
 .mr-cont-frm input:focus, .mr-cont-frm select:focus, .mr-cont-frm textarea:focus{
-outline:none !important;
-border-color:#69727d !important;
+	outline:none !important;
+	border-color:#69727d !important;
 }
 .mr-cont-frm .gf_page_steps {
-  justify-content: space-between !important;
+    justify-content: space-between !important;
 }
 
 
 .mr-cont-frm .gform_next_button{
 background-color: #69727d !important;
-  border-radius: 3px !important;
-  color: #fff !important;
-  /* display: inline-block; */
-  font-size: 15px !important;
-  line-height: 1 !important;
-  padding: 12px 24px !important;
-  fill: #fff !important;
-  text-align: center !important;
-  transition: all .3s !important;
-  width: 100% !important;
+    border-radius: 3px !important;
+    color: #fff !important;
+    /* display: inline-block; */
+    font-size: 15px !important;
+    line-height: 1 !important;
+    padding: 12px 24px !important;
+    fill: #fff !important;
+    text-align: center !important;
+    transition: all .3s !important;
+    width: 100% !important;
 }
 
 .mr-cont-frm .gform_next_button:hover{
 background-color: #c36 !important;
-border:1px solid transparent !important;
+	border:1px solid transparent !important;
 }
 
 .gform_required_legend {
-  display: none;
+    display: none;
 }
 
 .mr-cont-frm .gform_fields {
-  grid-row-gap: 16px !important;
+    grid-row-gap: 16px !important;
 }
 
-.mr-cont-frm .gf_step_active span.gf_step_number {
-  background: transparent !important;
-  border: 1px solid #39b54a !important;
-  color: #39b54a !important;
+ .mr-cont-frm .gf_step_active span.gf_step_number {
+    background: transparent !important;
+    border: 1px solid #39b54a !important;
+    color: #39b54a !important;
 }
 
 .mr-cont-frm .gf_step_label {
-  color: #c2cbd2 !important;
+    color: #c2cbd2 !important;
 }
 
 .mr-cont-frm .gf_step_active .gf_step_label{
-color: #39b54a !important;
+	color: #39b54a !important;
 }
 
 .mr-cont-frm span.gf_step_number {
-  color: #c2cbd2 !important;
-  border: 1px solid #c2cbd2 !important;
+    color: #c2cbd2 !important;
+    border: 1px solid #c2cbd2 !important;
 }
 
 .mr-cont-frm .gf_step_completed .gf_step_number::after {
-  background: #39b54a !important;
-  border: 1px solid #39b54a !important;
+    background: #39b54a !important;
+    border: 1px solid #39b54a !important;
 }
 
 .mr-cont-frm .gf_step_first.gf_step_completed span.gf_step_label {
-  color: #39b54a !important;
+    color: #39b54a !important;
 }
 .mr-cont-frm .ginput_container_fileupload input {
-  padding: unset !important;
+    padding: unset !important;
 }
 .mr-cont-frm .gfield--type-radio input {
-  padding: 0 !important;
+    padding: 0 !important;
 }
 
 .mr-cont-frm .gform_previous_button, .mr-cont-frm .gform_button {
-  width: 50% !important;
-border-radius: 3px !important;
-  color: #fff !important;
-  /* display: inline-block; */
-  font-size: 15px !important;
-  line-height: 1 !important;
-  padding: 12px 24px !important;
-  fill: #fff !important;
-  text-align: center !important;
-  transition: all .3s !important;
-background:#69727d !important;
+    width: 50% !important;
+ border-radius: 3px !important;
+    color: #fff !important;
+    /* display: inline-block; */
+    font-size: 15px !important;
+    line-height: 1 !important;
+    padding: 12px 24px !important;
+    fill: #fff !important;
+    text-align: center !important;
+    transition: all .3s !important;
+	background:#69727d !important;
 }
 .mr-cont-frm .gform_previous_button:hover, .mr-cont-frm .gform_button:hover{
 background-color: #c36 !important;
-border:1px solid transparent !important;
+	border:1px solid transparent !important;
 }
 .mr-cont-frm .gfield--type-radio .gfield_label {
-  font-size: 16px !important;
-  font-weight: 400;
-  color: #333333 !important;
+    font-size: 16px !important;
+    font-weight: 400;
+    color: #333333 !important;
 }
 
 .mr-cont-frm .gform-page-footer {
-  flex-wrap: unset !important;
+    flex-wrap: unset !important;
 }
 
 .cont-form-main .gform_validation_errors {
-  display: none !important;
+    display: none !important;
 }
 
 .faqs-accordion .elementor-widget-container .elementor-accordion .elementor-accordion-item .elementor-tab-title {
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: space-between;
-  align-items: center;
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    align-items: center;
 }
 
 @media(max-width: 1235px) and (min-width: 1025px) {
-  .header-menu nav ul{
-      width: 100%;
-      justify-content: space-between !important;
-  }
+    .header-menu nav ul{
+        width: 100%;
+        justify-content: space-between !important;
+    }
 
-  .header-menu nav ul li a{
-      margin-left: 0 !important;
-      margin-right: 0 !important;
-  }
+    .header-menu nav ul li a{
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
 }
 
 
 @media(max-width: 1190px) and (min-width: 1025px) {
-  .header-contact-btn .elementor-widget-container .elementor-button-wrapper a {
-      /* min-width: 159px; */
-      padding-left: 11px;
-      padding-right: 11px
-  }
+    .header-contact-btn .elementor-widget-container .elementor-button-wrapper a {
+        /* min-width: 159px; */
+        padding-left: 11px;
+        padding-right: 11px
+    }
 
-  .footer-menu {
-      width: 100%;
-  }
-  
-  .footer-menu nav ul {
-      width: 100%;
-      flex-wrap: nowrap !important;
-      justify-content: space-between !important;
-  }
-  
-  .footer-menu nav ul li a {
-      margin-left: 0 !important;
-      margin-right: 0 !important;
-  }
+    .footer-menu {
+        width: 100%;
+    }
+    
+    .footer-menu nav ul {
+        width: 100%;
+        flex-wrap: nowrap !important;
+        justify-content: space-between !important;
+    }
+    
+    .footer-menu nav ul li a {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
 }
 
 
 @media(max-width: 390px) {
-  .difference-table-home .elementor-widget-container .elementor-jet-table .jet-table-wrapper {
-      overflow-x: scroll;
-      overflow-y: hidden;
-  }
+    .difference-table-home .elementor-widget-container .elementor-jet-table .jet-table-wrapper {
+        overflow-x: scroll;
+        overflow-y: hidden;
+    }
 }
 
 
 .privacy-content-section ul li {
-  margin-bottom: 20px;
+    margin-bottom: 20px;
 }
 
