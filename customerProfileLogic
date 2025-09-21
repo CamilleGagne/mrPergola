@@ -1,5 +1,6 @@
 <script>	
 var originalData;
+var data;
 var orderNotification;
 /*Customer Profile*/	
 var title = document.getElementById('customer_profile_name');
@@ -27,34 +28,10 @@ var addNoteBtn = document.getElementById('customer_profile_add_note_btn');
 	
 	
 document.addEventListener('DOMContentLoaded', function () {
-	//Doc picker
-	trigger.addEventListener('click', function() {
-		if (input) {
-			input.click();
-		}
-	});
-	
-input.addEventListener('change', function() {
-    if (input.files.length === 0) {return;}
-
-    var files = Array.prototype.slice.call(input.files);
-    for (var i = 0; i < files.length; i++) {
-        fileList.appendChild(createFileItem(files[i].name, function() {
-            if (fileList.children.length === 0) {fileList.textContent = 'No file selected';}
-        }));
-    }
-
-    input.value = '';
-});
-
-	
-	
-	
 	if (teamSelected && teamSelected.value === 'none') {
 		notifyTeamBtn.disabled = true;
 	}
 		
-/*EVENT LISTENER*/	
 	teamSelected.addEventListener('change', function(){
 		if (teamSelected.value){
 			notifyTeamBtn.disabled = false;
@@ -64,7 +41,7 @@ input.addEventListener('change', function() {
 	saveProfilBtn.addEventListener('click', function(e){
 		e.preventDefault();
 		e.stopPropagation();
-		saveCustomerProfil();
+		saveCustomerInfo();
 	});
 	
 	saveOrdersBtn.addEventListener('click', function(e){
@@ -85,7 +62,6 @@ input.addEventListener('change', function() {
 		console.log('Clicked Notify Customer');
 	});
 	
-	
 	addNoteBtn.addEventListener('click', function(e){
 		e.preventDefault();
 		e.stopPropagation();
@@ -98,8 +74,57 @@ input.addEventListener('change', function() {
 	}else{
 		console.log("No Id retrieved");
 	}
+	
+	trigger.addEventListener('click', function() {
+			if (input) {
+					input.click();
+			}
+	});
+
+	
+	input.addEventListener('change', function() {
+    fileList.innerHTML = '';
+    if (input.files.length === 0) {
+        fileList.textContent = 'No file selected';
+        return;
+    }
+		
+		var files = Array.from(input.files); 
+    files.forEach((file, index) => {
+        var div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '4px';
+
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = file.name;
+        nameSpan.style.flex = '1';
+
+        var removeBtn = document.createElement('button');
+        removeBtn.textContent = '❌';
+        removeBtn.style.color = 'red';
+        removeBtn.style.border = 'none';
+        removeBtn.style.background = 'transparent';
+        removeBtn.style.cursor = 'pointer';
+        removeBtn.addEventListener('click', function() {
+            div.remove();
+
+            // Si plus aucun fichier affiché
+            if (fileList.children.length === 0) {
+                fileList.textContent = 'No file selected';
+            }
+        });
+
+        div.appendChild(nameSpan);
+        div.appendChild(removeBtn);
+        fileList.appendChild(div);
+    });
+	});
+		
 });
 	
+	
+/*Retrieve customer ID from UI*/	
 function getIdFromUrl(){
   var query = window.location.search.substring(1); 
 	var vars = query.split('&');
@@ -114,7 +139,6 @@ function getIdFromUrl(){
 	
 	
 function populatePage(data){	
-	
 	if (!first_name || !last_name || !email || !postal_code || !phone_number || !fileList ){return;}
 	
 	if (title){
@@ -128,56 +152,73 @@ function populatePage(data){
 	phone_number.value = data.phone_number || '';
 	
 	//Right now we assume first forecast
-	teamSelected.value = data.forecasts[0].team_assigned ? data.forecasts[0].team_assigned : 'none';
-	orderStatus.value = data.forecasts[0].order_status ? data.forecasts[0].order_status : 'none';
-	orderNotification = data.forecasts[0].order_status_notification ? data.forecasts[0].order_status_notification : 'none';
+	if (data.forecasts.length > 0){
+		teamSelected.value = data.forecasts[0].team_assigned ? data.forecasts[0].team_assigned : 'none';
+		orderStatus.value = data.forecasts[0].order_status ? data.forecasts[0].order_status : 'none';
+		orderNotification = data.forecasts[0].order_status_notification ? data.forecasts[0].order_status_notification : 'none';
 
-	if (data.forecasts[0].image_url){
-			loadDocs(data.forecasts[0].image_url);
+		if (data.forecasts[0].image_url){
+				loadDocs(data.forecasts[0].image_url);
+		}	
 	}
-
+	
   renderForecastTable(data);
 	
 	hideLoading();	
 }
 
 
+// Load existing URLs into the file list
 function loadDocs(docs) {
     if (!Array.isArray(docs)) {docs = [];}
-    for (var i = 0; i < docs.length; i++) {
-        fileList.appendChild(createFileItem(docs[i], function() {
-            if (fileList.children.length === 0) {fileList.textContent = 'No file selected';}
+
+    docs.forEach(function(url) {
+        fileList.appendChild(createFileItem(url, function() {
+            if (fileList.children.length === 0) {
+							fileList.textContent = 'No file selected';}
         }, true)); // true = it's a URL
-    }
+    });
 }
+	
 // Helper to create a list item for a file or URL
-function createFileItem(nameOrUrl, onRemove, isUrl) {
-    var div = document.createElement('div');
+function createFileItem(fileOrUrl, onRemove, isUrl) {
+   if (typeof isUrl === 'undefined') {
+        isUrl = false;
+    }  
+	
+		var div = document.createElement('div');
     div.style.display = 'flex';
     div.style.alignItems = 'center';
     div.style.marginBottom = '4px';
 
     var nameElement;
+
     if (isUrl) {
-        // Create clickable link
+        // URL
         nameElement = document.createElement('a');
-        nameElement.textContent = nameOrUrl.substring(nameOrUrl.lastIndexOf('/') + 1); // just the filename
+        nameElement.dataset.url = fileOrUrl;
+        nameElement.textContent = fileOrUrl.split('/').pop();
         nameElement.href = '#';
         nameElement.style.color = 'blue';
         nameElement.style.textDecoration = 'underline';
         nameElement.style.flex = '1';
     } else {
-        // Just a span for local files
+        // Local file
         nameElement = document.createElement('span');
-        nameElement.textContent = nameOrUrl;
+        nameElement.textContent = fileOrUrl.name;
+        nameElement.dataset.filename = fileOrUrl.name;
+        nameElement.dataset.fileIndex = null; // optional, for tracking
+        nameElement.fileObject = fileOrUrl; // attach File object to span for FormData
         nameElement.style.flex = '1';
     }
 
-		nameElement.addEventListener('click', function(e) {
-			e.preventDefault(); // prevent default anchor behavior
-			window.open(nameOrUrl, '_blank', 'noopener,noreferrer'); // open in new tab/window
-	});
-	
+    nameElement.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (isUrl) {
+            window.open(nameElement.dataset.url, '_blank', 'noopener,noreferrer');
+        }
+    });
+
     var removeBtn = document.createElement('button');
     removeBtn.textContent = '❌';
     removeBtn.style.color = 'red';
@@ -196,6 +237,90 @@ function createFileItem(nameOrUrl, onRemove, isUrl) {
 
     return div;
 }
+	
+function renderForecastTable(data){
+	if (!data){
+		forecastTableContainer.innerHTML = 'No data found';
+	}
+	
+	var html = '<div class="mrpergola-table-container">';
+    html += '<table id="customerTable" class="mrpergola-table display">';
+    html += '<thead><tr>';
+	  html += '<th colspan="1"></th>';
+    html += '<th colspan="2">Date</th>';
+		html += '<th colspan="2"></th>';
+    html += '<th colspan="2">Frames</th>';
+		html += '<th colspan="2">Subframes</th>';
+    html += '<th colspan="2">Louvers</th>';
+		html += '<th colspan="2">Posts</th>';
+    html += '<th colspan="5"></th></tr>';
+
+    html += '<tr>';
+		html += '<th class="mrpergola-col-xsmall"></th>';
+    html += '<th class="mrpergola-col-xsmall">Submit</th>';
+    html += '<th class="mrpergola-col-xsmall">Due</th>';
+    html += '<th style="width:2%">Mdl</th>';
+    html += '<th style="width:2%">Type</th>';
+    html += '<th style="width:2%">Wdt</th>';
+    html += '<th style="width:2%">Dpt</th>';
+    html += '<th class="mrpergola-col-xsmall">Lgt</th>';
+    html += '<th class="mrpergola-col-xsmall">Qty</th>';
+    html += '<th class="mrpergola-col-xsmall">Lgt</th>';
+    html += '<th class="mrpergola-col-xsmall">Qty</th>';
+    html += '<th style="width:6%">Lgt</th>';
+    html += '<th style="width:6%">Qty</th>';
+    html += '<th class="mrpergola-col-xsmall">Slds</th>';
+    html += '<th class="mrpergola-col-xsmall">Color</th>';
+    html += '<th class="mrpergola-col-xsmall">Extras</th>';
+    html += '<th>Info</th>';
+    html += '</tr></thead><tbody>';
+
+    var customStyle = 'color: blue;';
+
+    for (var i = 0; i < data.forecasts.length; i++) {
+        var forecast = data.forecasts[i];
+        var accessories = forecast.accessories || [];
+        var customFlags = forecast.custom_fields;
+        var formattedEntryDate = forecast.entry_date ? (new Date(forecast.entry_date)).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit' }) : '';
+        var formattedDueDate = forecast.due_date ? (new Date(forecast.due_date)).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit' }) : '';
+
+			  html += '<tr data-id="' + forecast.id + '">';
+				html += '<td><input type="checkbox" class="forecast-select" value="' + forecast.id + '"' + (i === 0 ? ' checked' : '') + '></td>';
+        html += '<td>' + formattedEntryDate + '</td>';
+        html += '<td contenteditable="true">' + (forecast.due_date ? formattedDueDate : '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.model || '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.model_type || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.width) ? customStyle : '') + '">' + (forecast.width || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.depth) ? customStyle : '') + '">' + (forecast.depth || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.subSize) ? customStyle : '') + '">' + (forecast.subframe_size || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.subQty) ? customStyle : '') + '">' + (forecast.subframe_qty || '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.louver_size || '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.louver_qty || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.postSize) ? customStyle : '') + '">' + (forecast.post_size || '') + '</td>';
+        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.postQty) ? customStyle : '') + '">' + (forecast.post_qty || '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.soldiers || '') + '</td>';
+        html += '<td contenteditable="true">' + (forecast.color || '') + '</td>';
+        html += '<td contenteditable="true">' + (accessories.join(', ')) + '</td>';
+        html += '<td contenteditable="true">' + (forecast.info || '') + '</td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+     if (forecastTableContainer) {
+        forecastTableContainer.innerHTML = html;
+
+        // Attach dirty tracking AFTER table exists
+        var table = document.getElementById('customerTable');
+        if (table) {
+            table.addEventListener('input', function(e) {
+                var target = e.target;
+                if (target.isContentEditable) {
+                    var row = target.closest('tr');
+                    if (row) {row.classList.add('dirty');}
+                }
+            });
+        }
+    }
+}		
 	
 function openPopup(popupId) {
     if (typeof elementorProFrontend === 'undefined') return;
@@ -225,7 +350,7 @@ function loadCustomerData(id){
     .then(function(data){
         if (!data) {return;}
         originalData = JSON.parse(JSON.stringify(data));
-        populatePage(data);
+        populatePage(originalData);
         hideLoading();
     })
     .catch(function(err){
@@ -257,18 +382,52 @@ function isValueDifferent(data, formName){
 			return true;
 		}
 	}else if(formName === 'order'){
-		if (teamSelected && teamSelected.value !== data.team){
+		var forecast = getCheckedRow();
+		
+		if (teamSelected && teamSelected.value !== forecast.team_assigned|| !forecast.team_assigned){
 			return true;
 		}
-		if (orderStatus && orderStatus.value !== data.orderStatus){
+		
+		if (orderStatus && orderStatus.value !== forecast.order_status){
 			return true;
 		}
 	}
-	
 	return false;
 }	
 	
-function saveCustomerProfil(){
+function getCheckedRow(){
+	var forecastTable = document.getElementById('customerTable');
+		var checkbox = forecastTable.querySelector('tbody tr input[type="checkbox"]:checked');
+    if (!checkbox) {return null;}
+    var row = checkbox.closest('tr');
+		var forecastId = row.dataset.id; 
+   	var forecast = originalData.forecasts.find(function(f) {
+    		return f.id === forecastId;
+		});
+		return forecast;
+}	
+
+function isImageListDiff() {
+    var forecast = getCheckedRow();
+    var fileListDiv = document.getElementById('customer_file_list');
+    if (!fileListDiv) {return true;}
+
+    var currentImageList = Array.from(fileListDiv.children).map(item => {
+        var link = item.querySelector('a');
+        return link ? link.dataset.url : item.textContent.trim();
+    });
+
+    if (forecast.image_url.length !== currentImageList.length)  {return true;}
+
+    for (var i = 0; i < forecast.image_url.length; i++) {
+        if (forecast.image_url[i] !== currentImageList[i])  {return true;}
+    }
+
+    return false;
+}
+	
+/*Save function for the Info tab*/	
+function saveCustomerInfo(){
 	var ajaxDataDiv = document.getElementById('ajax-data-block-client-profile');
 	var ajaxNonce = ajaxDataDiv.getAttribute('data-nonce');
 
@@ -320,31 +479,88 @@ function saveCustomerProfil(){
 	}
 }
 
+/*Save function for the Orders tab*/
 function saveCustomerOrders(){
-	var ajaxDataDiv = document.getElementById('ajax-data-block-client-profile');
+	var forecastTable = document.getElementById('customerTable');
+	var ajaxDataDiv = document.getElementById('ajax-data-block-client-order');
 	var ajaxNonce = ajaxDataDiv.getAttribute('data-nonce');
 
-	var isChange = isValueDifferent(originalData, 'order');
-	
-	if (isChange) {
+	var isChange = true;//isValueDifferent(originalData, 'order');  //Checks Team and Status
+	var dirtyRows = forecastTable.querySelectorAll('tbody tr.dirty');  //Checks for changes in the table
+	var isDirtyRows = dirtyRows.length > 0;
+	var isImageListChange = false ;//isImageListDiff();  //Check if images were changed
+		
+	if (isChange || isDirtyRows || isImageListChange) 
+	{
 		showLoading();
-		var newData = {
-			'orderStatus':orderStatus.value,
-			'teamSelected':teamSelected.value,
-			'id' : originalData.id
-		};
-
+		var forecasts = [];
+		//var formData = new FormData();
+		//formData.append('customer_id', originalData.id);
+		//formData.append('_wpnonce', ajaxNonce);
+		//formData.append('action', 'save_client_order');
+			
+		var activeForecast = getCheckedRow();
+		var forecast = originalData.forecasts.find(function(f) { return f.id === activeForecast.id; });
+		
+		if (isDirtyRows){	
+			for (var i = 0; i < dirtyRows.length; i++) {
+				var row = dirtyRows[i];
+				//var forecastId = row.dataset.id;
+				//var forecast = originalData.forecasts.find(function(f) { return f.id === forecastId; });
+				if (!forecast) {continue;}
+				
+				var cells = row.querySelectorAll('td');
+				forecast.submitted_date = cells[1].innerText.trim() || null;
+				forecast.due_date       = cells[2].innerText.trim() || null;
+				forecast.model          = cells[3].innerText.trim();
+				forecast.model_type     = cells[4].innerText.trim();
+				forecast.width          = cells[5].innerText.trim();
+				forecast.depth          = cells[6].innerText.trim();
+				forecast.subframe_size  = cells[7].innerText.trim();
+				forecast.subframe_qty   = cells[8].innerText.trim();
+				forecast.louver_size    = cells[9].innerText.trim();
+				forecast.louver_qty     = cells[10].innerText.trim();
+				forecast.post_size      = cells[11].innerText.trim();
+				forecast.post_qty       = cells[12].innerText.trim();
+				forecast.soldiers       = cells[13].innerText.trim();
+				forecast.color          = cells[14].innerText.trim();
+				forecast.extras         = cells[15].innerText.trim();
+				forecast.info           = cells[16].innerText.trim();
+				
+				console.log(JSON.stringify(forecast));
+				forecasts.push(forecast);
+				console.log(JSON.stringify(forecasts));
+			}
+		}
+		
+		if (isChange){
+			if (forecasts.length>0){
+				var index = forecasts.findIndex(function(forecast){return forecast.id === activeForecast.id;});
+				if (index > -1){
+					forecasts[index].order_status = orderStatus.value;
+					forecasts[index].team_selected = teamSelected.value;		
+				}else{
+					forecasts.push({order_status : orderStatus.value, team_selected : teamSelected.value,id:activeForecast.id});
+				}
+			}else{
+				forecasts.push({order_status : orderStatus.value, team_selected : teamSelected.value,id:activeForecast.id});
+			}
+		}
+		
+		var formData = new FormData();
+		formData.append('_wpnonce', ajaxNonce);
+		formData.append('action', 'save_client_order');
+		formData.append('data', JSON.stringify(forecasts));
+			
+		/*var images = document.querySelector('input[type="file"]').files;
+		for (var i = 0; i < images.length; i++) {
+				formData.append('images[]', images[i]); 
+		}*/
+		
 		// Send the AJAX request
 		fetch('/wp-admin/admin-ajax.php', {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded'
-			},
-			body: new URLSearchParams({
-				action: 'save_client_profile',
-				_wpnonce: ajaxNonce,
-				data: JSON.stringify(newData)
-			})
+			body:formData
 		}).then(function(response) {
 			return response.json();
 			// Parse response as JSON
@@ -368,74 +584,4 @@ function saveCustomerOrders(){
 		alert('No changes detected.');
 	}
 }	
-	
-function renderForecastTable(data){
-	var html = '<div class="mrpergola-table-container">';
-    html += '<table id="customer_table" class="mrpergola-table display">';
-    html += '<thead><tr>';
-	  html += '<th colspan="1"></th><th colspan="1"></th>';
-    html += '<th colspan="2">Date</th><th colspan="2"></th>';
-    html += '<th colspan="2">Frames</th><th colspan="2">Subframes</th>';
-    html += '<th colspan="2">Louvers</th><th colspan="2">Posts</th>';
-    html += '<th colspan="5"></th></tr>';
-
-    html += '<tr>';
-		html += '<th class="mrpergola-col-xsmall"></th>';
-    html += '<th class="mrpergola-col-xsmall">Submit</th>';
-    html += '<th class="mrpergola-col-xsmall">Due</th>';
-    html += '<th style="width:2%">Mdl</th>';
-    html += '<th style="width:2%">Type</th>';
-    html += '<th style="width:2%">Wdt</th>';
-    html += '<th style="width:2%">Dpt</th>';
-    html += '<th class="mrpergola-col-xsmall">Lgt</th>';
-    html += '<th class="mrpergola-col-xsmall">Qty</th>';
-    html += '<th class="mrpergola-col-xsmall">Lgt</th>';
-    html += '<th class="mrpergola-col-xsmall">Qty</th>';
-    html += '<th style="width:6%">Lgt</th>';
-    html += '<th style="width:6%">Qty</th>';
-    html += '<th class="mrpergola-col-xsmall">Slds</th>';
-    html += '<th class="mrpergola-col-xsmall">Color</th>';
-    html += '<th class="mrpergola-col-xsmall">Extras</th>';
-    html += '<th>Info</th>';
-    html += '</tr></thead><tbody>';
-
-    var customStyle = 'color: blue;';
-
-    for (var i = 0; i < data.forecasts.length; i++) {
-        var forecast = data.forecasts[i];
-        var accessories = forecast.accessories || [];
-        var customFlags = forecast.custom_fields;
-
-        var formattedEntryDate = forecast.entry_date ? (new Date(forecast.entry_date)).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit' }) : '';
-        var formattedDueDate = forecast.due_date ? (new Date(forecast.due_date)).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit' }) : '';
-
-			 html += '<tr data-id="' + forecast.id + '">';
-				html += '<td><input type="checkbox" class="forecast-select" value="' + forecast.id + '"></td>';
-        html += '<td>' + formattedEntryDate + '</td>';
-        html += '<td contenteditable="true">' + (forecast.due_date ? formattedDueDate : '') + '</td>';
-        html += '<td contenteditable="true">' + (forecast.model || '') + '</td>';
-        html += '<td contenteditable="true">' + (forecast.model_type || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.width) ? customStyle : '') + '">' + (forecast.width || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.depth) ? customStyle : '') + '">' + (forecast.depth || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.subSize) ? customStyle : '') + '">' + (forecast.subframe_size || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.subQty) ? customStyle : '') + '">' + (forecast.subframe_qty || '') + '</td>';
-        html += '<td contenteditable="true">' + (forecast.louver_size || '') + '</td>';
-        html += '<td contenteditable="true">' + (forecast.louver_qty || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.postSize) ? customStyle : '') + '">' + (forecast.post_size || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.postQty) ? customStyle : '') + '">' + (forecast.post_qty || '') + '</td>';
-        html += '<td contenteditable="true">' + (forecast.soldiers || '') + '</td>';
-        html += '<td contenteditable="true">' + (forecast.color || '') + '</td>';
-        html += '<td>' + (accessories.join(', ')) + '</td>';
-        html += '<td contenteditable="true">' + (forecast.info || '') + '</td>';
-        html += '</tr>';
-    }
-
-    html += '</tbody></table></div>';
-    if (forecastTableContainer) {
-        forecastTableContainer.innerHTML = html;
-    }
-}	
-	
-	
-
 </script>	
