@@ -243,18 +243,17 @@ function save_forecast_form() {
 	$dueDate = new DateTime(isset($_POST['date']) ? sanitize_text_field($_POST['date']) : '');
 	$formattedDueDate = $dueDate->format('Y-m-d');
 	$formattedCurrentDate = (new DateTime())->format('Y-m-d');
-
 	/* FORECAST PART */
 	$model         = isset($_POST['model']) ? sanitize_text_field($_POST['model']) : '';
 	$modelType     = isset($_POST['modelType']) ? sanitize_text_field($_POST['modelType']) : '';
-	$width         = formatFeetInches(isset($_POST['widthField']) ? $_POST['widthField'] : '');
-	$depth         = formatFeetInches(isset($_POST['depthField']) ? $_POST['depthField'] : '');
-	$louverLength  = formatFeetInches(isset($_POST['louverLength']) ? $_POST['louverLength'] : '');
+	$width         = formatFeetInches(isset($_POST['widthField']) ? wp_unslash($_POST['widthField']) : '');
+	$depth         = formatFeetInches(isset($_POST['depthField']) ? wp_unslash($_POST['depthField']) : '');
+	$louverLength  = formatFeetInches(isset($_POST['louverLength']) ? wp_unslash($_POST['louverLength']) : '');
 	$louverQty     = isset($_POST['louverQty']) ? $_POST['louverQty'] : '';
 	$soldiers      = isset($_POST['soldiers']) ? $_POST['soldiers'] : '';
-	$subframeQty   = isset($_POST['subframeQty']) ? $_POST['subframeQty'] : '';
-	$subframeSize  = formatFeetInches(isset($_POST['subframeSize']) ? $_POST['subframeSize'] : '');
-	$postSize      = formatFeetInches(isset($_POST['postSize']) ? $_POST['postSize'] : '');
+	$subframeQty   = isset($_POST['subframeQty']) ? wp_unslash($_POST['subframeQty']) : '';
+	$subframeSize  = formatFeetInches(isset($_POST['subframeSize']) ? wp_unslash($_POST['subframeSize']) : '');
+	$postSize      = formatFeetInches(isset($_POST['postSize']) ? wp_unslash($_POST['postSize']) : '');
 	$postQty       = isset($_POST['postQty']) ? $_POST['postQty'] : '';
 	$dueDate       = $formattedDueDate;
 	$color         = isset($_POST['color']) ? $_POST['color'] : '';
@@ -532,9 +531,10 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 }, 10, 2);
 /* ----------------------------  Formats custom input  ---------------------------- */
 function formatFeetInches($input) {
-  $input = trim($input);
+	if ($input ===""){return $input;}
+  	$input = trim($input);
     $input = preg_replace('/\s+/', ' ', $input); // Normalize whitespace
-
+	
     // Handle inputs like: 11 2, 11,2, 11 2", 11, 2", etc.
     if (preg_match('/^(\d+)[\s,]+(\d+)"?$/', $input, $matches)) {
         return $matches[1] . "'" . $matches[2] . '"';
@@ -1408,9 +1408,9 @@ function display_todo_table($atts){
 add_shortcode('show_todo_data', 'display_todo_table');
 			
 /* ========================================================================================================================================== */
-/*                                                      CUSTOMER DATA                                                                         */
+/*                                                          CUSTOMERS LIST                                                                    */
 /* ========================================================================================================================================== */
-//Displays the full table of all the customers
+/* ---------------------------- Display list of all customers ---------------------------- */
 function display_customer_data() {
 	global $wpdb;
 	
@@ -1425,9 +1425,6 @@ function display_customer_data() {
 	if (empty($results)) {
         return '<p style="font-family: Roboto, sans-serif;text-align: center;"">No data found.</p>';
     }
-	
-	$formatted_entry_date = date('d/m', strtotime($entry_date));
-	$formatted_due_date = date('d/m', strtotime($due_date));
 	
     ob_start();	
 	echo '<div class="mrpergola-table-container">';
@@ -1449,6 +1446,8 @@ function display_customer_data() {
 	echo '<tbody>';
 		
 	foreach ($results as $row) {
+		$formatted_entry_date = date('d/m', strtotime($row->entry_date));
+		$formatted_due_date = date('d/m', strtotime($row->due_date));
 		$profile_url = 'customer-profile.php?id=' . urlencode($row->id);
 		$profile_url = site_url('/customer-profile/?id=' . urlencode($row->customer_id));
 		$full_name = $row->first_name . ' ' . $row->last_name;
@@ -1476,7 +1475,9 @@ function display_customer_data() {
 
 add_shortcode('show_customer_data', 'display_customer_data');
 
-
+/* ========================================================================================================================================== */
+/*                                                      CUSTOMER PROFILE DATA                                                                 */
+/* ========================================================================================================================================== */
 /* ---------------------------- Retrieve Customer Profile Data ---------------------------- */
 // REST API endpoint
 add_action('rest_api_init', function () {
@@ -1525,7 +1526,8 @@ function myplugin_get_customer(WP_REST_Request $request) {
                 f.accessories,
                 f.image_url,
                 f.team_assigned,
-                f.order_status_notification
+                f.order_status_notification,
+				f.info
             FROM wp_custom_customers c
             LEFT JOIN wp_forecast_table f ON c.id = f.customer_id
             WHERE c.id = %d",
@@ -1572,6 +1574,7 @@ function myplugin_get_customer(WP_REST_Request $request) {
                 'color'                     => $row['color'],
                 'custom_fields'             => $row['custom_fields'],
                 'status'                    => $row['forecast_status'],
+				'info'                      => $row['info'],
                 'accessories'               => is_array(json_decode($row['accessories'], true)) ? json_decode($row['accessories'], true) : []
             ];
         }
@@ -1579,111 +1582,273 @@ function myplugin_get_customer(WP_REST_Request $request) {
 
     return rest_ensure_response($customer);
 }
-/*function generate_customer_forecast_table($results){
-	 if (!$results) {
-        return '<p>Customer not found.</p>';
-    }
-			
-    $html_table = '<div class="mrpergola-table-container"> <table id="customer_table" class="mrpergola-table display">';
-    $html_table .= '<thead><tr>';
-	$html_table .= 
-		'<th colspan="2">Date</th>
-		<th colspan="2"></th>
-		<th colspan="2">Frames</th>
-		<th colspan="2">Subframes</th>
-		<th colspan="2">Louvers</th>
-		<th colspan="2">Posts</th>
-		<th colspan="5"></th></tr>';
-	
-    $html_table .= 
-		'<th class="mrpergola-col-xsmall">Submit</th>
-		<th class="mrpergola-col-xsmall">Due</th>
-        <th style="width:2%">Mdl</th>
-        <th style="width:2%">Type</th>
-        <th style="width:2%">Wdt</th>
-        <th style="width:2%">Dpt</th>
-        <th class="mrpergola-col-xsmall">Lgt</th>
-        <th class="mrpergola-col-xsmall">Qty</th>
-        <th class="mrpergola-col-xsmall">Lgt</th>
-        <th class="mrpergola-col-xsmall">Qty</th>
-        <th style="width:6%">Lgt</th>
-        <th style="width:6%">Qty</th>
-        <th class="mrpergola-col-xsmall">Slds</th>
-		<th class="mrpergola-col-xsmall">Color</th>
-		<th class="mrpergola-col-xsmall">Extras</th>
-        <th>Info</th>
-        <th class="mrpergola-col-xsmall">Docs</th>';
-    $html_table .= '</tr></thead><tbody>';
 
-    $customStyle = 'color: blue;';
-    
-	foreach ($results as $row) {
-        $customFlags = [];
-        if (!empty($row->custom_fields)) {
-            $customValuesArray = json_decode($row->custom_fields, true);
-            foreach ($customValuesToCheck as $value) {
-                $customFlags[$value] = in_array($value, array_map('trim', $customValuesArray));
+/* ---------------------------- Save Customer Profile Data ---------------------------- */
+function ajax_data_block_client_profile() {
+    $nonce = wp_create_nonce('client_profile_nonce');
+    $ajax_url = admin_url('admin-ajax.php');
+    return "<div id='ajax-data-block-client-profile' data-nonce='{$nonce}' data-url='{$ajax_url}' style='display:none;'></div>";
+}
+add_shortcode('ajax_data_block_client_profile', 'ajax_data_block_client_profile');
+
+function save_client_profile() {
+ 
+	global $wpdb;
+
+    $messages = [];
+
+    if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'client_profile_nonce')) {
+        wp_send_json_error('Wrong token.');
+    } 
+
+    $payload = isset($_POST['data']) ? json_decode(stripslashes($_POST['data']), true) : [];
+    if (!$payload) {
+        wp_send_json_error('Payload is empty or invalid JSON.');
+    } 
+
+
+    $id          = isset($payload['id']) ? intval($payload['id']) : 0;
+    $first_name  = isset($payload['first_name']) ? sanitize_text_field($payload['first_name']) : '';
+    $last_name   = isset($payload['last_name']) ? sanitize_text_field($payload['last_name']) : '';
+    $email       = isset($payload['email']) ? sanitize_email($payload['email']) : '';
+    $postal_code = isset($payload['postal_code']) ? sanitize_text_field($payload['postal_code']) : '';
+    $phone_num   = isset($payload['phone_number']) ? sanitize_text_field($payload['phone_number']) : '';
+
+    if (empty($id)) {
+        wp_send_json_error('Client profile save: Missing or invalid customer ID.');
+    } 
+
+    $result = $wpdb->update(
+        'wp_custom_customers',
+        [
+            'postal_code'  => $postal_code,
+            'first_name'   => $first_name,
+            'last_name'    => $last_name,
+            'email'        => $email,
+            'phone_number' => $phone_num
+        ],
+        ['id' => $id],
+        ['%s','%s','%s','%s','%s'],
+        ['%d']
+    );
+
+    if ($result === false) {
+        $messages[] = 'Database update FAILED: ' . $wpdb->last_error;
+        wp_send_json_error($messages);
+    } elseif ($result === 0) {
+        $messages[] = 'Update executed, but no rows affected (data may be identical to current DB).';
+        wp_send_json_success($messages);
+    } else {
+        $messages[] = "Update successful. Rows affected: $result";
+        wp_send_json_success($messages);
+    }
+}
+add_action('wp_ajax_save_client_profile', 'save_client_profile');
+add_action('wp_ajax_nopriv_save_client_profile', 'save_client_profile');
+
+/* ---------------------------- Save Customer Order (forecast) Data ---------------------------- */
+function ajax_data_block_client_order() {
+    $nonce = wp_create_nonce('client_order_nonce');
+    $ajax_url = admin_url('admin-ajax.php');
+    return "<div id='ajax-data-block-client-order' data-nonce='{$nonce}' data-url='{$ajax_url}' style='display:none;'></div>";
+}
+add_shortcode('ajax_data_block_client_order', 'ajax_data_block_client_order');
+
+function process_images($new_list, $old_list) {
+    $final_urls = [];
+    $messages   = [];
+
+    // Make sure WP upload helpers are loaded
+    if (!function_exists('wp_handle_upload')) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+    }
+
+    // Process new list
+    foreach ($new_list as $item) {
+        if (filter_var($item, FILTER_VALIDATE_URL)) {
+            // Already a URL → keep it
+            $final_urls[] = $item;
+        } else {
+            // It's a filename → look for the actual uploaded file
+            $file_found = false;
+            if (!empty($_FILES)) {
+                foreach ($_FILES as $file_field) {
+                    foreach ($file_field['name'] as $key => $filename) {
+                        if ($filename === $item) {
+                            $file_array = [
+                                'name'     => $file_field['name'][$key],
+                                'type'     => $file_field['type'][$key],
+                                'tmp_name' => $file_field['tmp_name'][$key],
+                                'error'    => $file_field['error'][$key],
+                                'size'     => $file_field['size'][$key],
+                            ];
+
+                            $upload_overrides = ['test_form' => false];
+                            $movefile = wp_handle_upload($file_array, $upload_overrides);
+
+                            if ($movefile && !isset($movefile['error'])) {
+                                $attachment = [
+                                    'post_mime_type' => $movefile['type'],
+                                    'post_title'     => sanitize_file_name($filename),
+                                    'post_content'   => '',
+                                    'post_status'    => 'inherit',
+                                ];
+
+                                $attach_id   = wp_insert_attachment($attachment, $movefile['file']);
+                                $attach_data = wp_generate_attachment_metadata($attach_id, $movefile['file']);
+                                wp_update_attachment_metadata($attach_id, $attach_data);
+
+                                $final_urls[] = wp_get_attachment_url($attach_id);
+                                $messages[] = "Uploaded $filename successfully";
+                            } else {
+                                $messages[] = "Failed to upload $filename";
+                            }
+                            $file_found = true;
+                        }
+                    }
+                }
+            }
+
+            if (!$file_found) {
+                $messages[] = "File $item not found in uploaded files";
             }
         }
-
-        $entry_date = $row->entry_date;
-        $formatted_entry_date = date('d/m', strtotime($entry_date));
-        $due_date = $row->due_date;
-        $formatted_due_date = date('d/m', strtotime($due_date));
-		$accessories = json_decode($row->accessories, true) ?: [];
-		
-        $html_table .= '<tr data-id="' . esc_attr($row->id) . '">';
-        $html_table .= '<td>' . esc_html($formatted_entry_date) . '</td>';
-        $html_table .= '<td contenteditable="true">' . esc_html($formatted_due_date) . '</td>';
-        $html_table .= '<td contenteditable="true">' . esc_html($row->model) . '</td>';
-        $html_table .= '<td contenteditable="true">' . esc_html($row->model_type) . '</td>';
-        $html_table .= '<td contenteditable="true" style="' . ($customFlags['width'] ? $customStyle : '') . '">' . esc_html($row->width) . '</td>';
-        $html_table .= '<td contenteditable="true" style="' . ($customFlags['depth'] ? $customStyle : '') . '">' . esc_html($row->depth) . '</td>';
-        $html_table .= '<td contenteditable="true" style="' . ($customFlags['subSize'] ? $customStyle : '') . '">' . esc_html($row->subframe_size) . '</td>';
-        $html_table .= '<td contenteditable="true" style="' . ($customFlags['subQty'] ? $customStyle : '') . '">' . esc_html($row->subframe_qty) . '</td>';
-        $html_table .= '<td contenteditable="true">' . esc_html($row->louver_size) . '</td>';
-        $html_table .= '<td contenteditable="true">' . esc_html($row->louver_qty) . '</td>';
-        $html_table .= '<td contenteditable="true" style="' . ($customFlags['postSize'] ? $customStyle : '') . '">' . esc_html($row->post_size) . '</td>';
-        $html_table .= '<td contenteditable="true" style="' . ($customFlags['postQty'] ? $customStyle : '') . '">' . esc_html($row->post_qty) . '</td>';
-        $html_table .= '<td contenteditable="true">' . esc_html($row->soldiers) . '</td>';
-		$html_table .= '<td contenteditable="true">' . esc_html($row->color) . '</td>';
-		$html_table .= '<td>' . esc_html(implode(', ', $accessories)) . '</td>';
-        $html_table .= '<td contenteditable="true">' . esc_html($row->info) . '</td>';
-        $html_table .= '</tr>';
     }
 
-    $html_table .= '</tbody></table></div>';
+    // Remove old items not in the new list
+    foreach ($old_list as $old_url) {
+        if (!in_array($old_url, $final_urls, true)) {
+            $attach_id = attachment_url_to_postid($old_url);
+            if ($attach_id) {
+                wp_delete_attachment($attach_id, true);
+                $messages[] = "Deleted old file: $old_url";
+            }
+        }
+    }
 
-    return $html_table;
+    return [$final_urls, $messages];
 }
 
-Code that displays customer's orders in their profile page
-add_shortcode('customer_table', function() {
+
+function save_client_order() { 
     global $wpdb;
 
-    $id = isset($_GET['id']) ? absint($_GET['id']) : 0;
-
-    if (!$id) {
-        return '<p>No customer ID provided in the URL.</p>';
+    // Vérif du nonce
+    if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'client_order_nonce')) {
+        wp_send_json_error('Wrong token.');
     }
 
-    // Use get_results to handle multiple rows from the join
-    $results = $wpdb->get_results(
-        $wpdb->prepare(
-            "SELECT c.*, f.* 
-             FROM wp_custom_customers c
-             INNER JOIN wp_forecast_table f ON c.id = f.customer_id
-             WHERE c.id = %d",
-            $id
-        )
-    );
-	return generate_customer_forecast_table($results);
-});*/
+    $decoded = [];
+    if (!empty($_POST["data"])) {
+        $decoded = json_decode(stripslashes($_POST["data"]), true);
+    }
 
-/* ========================================================================================================================================== */
-/*                                                CUSTOMER NOTES                                                                              */
-/* ========================================================================================================================================== */
-/*Code that displays customer's note in their profile page*/
+    $results = [];
+    $messages = [];
+
+    if (empty($decoded)) {
+        wp_send_json_error('No payload decoded.');
+    }
+
+    foreach ($decoded as $index => $item) {
+		$id          = isset($item["id"])           ? $item["id"]           : null;
+		$model       = isset($item["model"])        ? $item["model"]        : null;
+		$modelType   = isset($item["model_type"])   ? $item["model_type"]   : null;
+		$width       = isset($item["width"])        ? formatFeetInches($item["width"]) : null;
+		$depth       = isset($item["depth"])        ? formatFeetInches($item["depth"]) : null;
+		$louverSize  = isset($item["louver_size"])  ? $item["louver_size"]  : null;
+		$louverQty   = isset($item["louver_qty"])   ? formatFeetInches($item["louver_qty"]) : null;
+		$subframeSize= isset($item["subframe_size"])? $item["subframe_size"] : null;
+		$subframeQty = isset($item["subframe_qty"]) ? formatFeetInches($item["subframe_qty"]) : null;
+		$postSize    = isset($item["post_size"])    ? $item["post_size"]    : null;
+		$postQty     = isset($item["post_qty"])     ? formatFeetInches($item["post_qty"]) : null;
+		$soldiers    = isset($item["soldiers"])     ? $item["soldiers"]     : null;
+		$color       = isset($item["color"])        ? $item["color"]        : null;
+		$extras      = isset($item["extras"])       ? $item["extras"]       : null;
+		$info        = isset($item["info"])         ? $item["info"]         : null;
+		$orderStatus = isset($item["order_status"]) ? $item["order_status"] : null;
+		$teamSelected= isset($item["team_selected"])? $item["team_selected"]: null;
+		$accessories = isset($item["extras"])? $item["extras"]: null;
+		
+        $fields = [
+            'model'        => $model,
+            'model_type'   => $modelType,
+            'width'        => $width,
+            'depth'        => $depth,
+            'louver_size'  => $louverSize,
+            'louver_qty'   => $louverQty,
+            'subframe_size'=> $subframeSize,
+            'subframe_qty' => $subframeQty,
+            'post_size'    => $postSize,
+            'post_qty'     => $postQty,
+            'soldiers'     => $soldiers,
+            'color'        => $color,
+            'accessories'  => $accessories,
+            'info'         => $info,
+			'order_status' => $orderStatus,
+			'team_assigned' => $teamSelected
+        ];
+
+    $fields = array_filter($fields, function($value) {
+        return $value !== null;
+    });
+
+		if (empty($fields)) {
+			continue;
+		}
+
+		$formats = array_fill(0, count($fields), '%s');
+
+		$result = $wpdb->update(
+			'wp_forecast_table',
+			$fields,
+			['id' => $id],
+			$formats,
+			['%d']
+		);
+
+		$messages[] = [
+			"row"             => $index,
+			"fields"          => $fields,
+			"wpdb_last_query" => $wpdb->last_query,
+			"wpdb_last_error" => $wpdb->last_error,
+			"update_result"   => $result
+		];
+    }
+
+    wp_send_json_success([
+        "payload_received" => $decoded,
+        "update_results"   => $results,
+        "troubleshooting"  => $messages
+    ]);
+}
+	
+	
+      /*  $table_name = 'wp_forecast_table';
+        $formats = array_fill(0, count($fields), '%s');
+
+        $result = $wpdb->update($table_name, $fields, ['id' => $forecast_id], $formats, ['%d']);
+
+        if ($result === false) {
+            $messages[] = 'Database update FAILED: ' . $wpdb->last_error;
+        } elseif ($result === 0) {
+            $messages[] = "Forecast ID $forecast_id: no rows changed";
+        } else {
+            $messages[] = "Forecast ID $forecast_id updated. Rows affected: $result";
+        }
+    }
+
+    wp_send_json_success($messages);
+}*/
+
+// Hook it up
+add_action('wp_ajax_save_client_order', 'save_client_order');
+add_action('wp_ajax_nopriv_save_client_order', 'save_client_order');
+
+
+/* ---------------------------- Show Customer Notes ---------------------------- */
 add_shortcode('show_customer_notes', function() {
     global $wpdb;
 
@@ -1789,70 +1954,6 @@ function save_client_note() {
 }
 add_action('wp_ajax_save_client_note', 'save_client_note');
 add_action('wp_ajax_nopriv_save_client_note', 'save_client_note');
-
-
-/* ---------------------------- Save Customer Profile Data ---------------------------- */
-function ajax_data_block_client_profile() {
-    $nonce = wp_create_nonce('client_profile_nonce');
-    $ajax_url = admin_url('admin-ajax.php');
-    return "<div id='ajax-data-block-client-profile' data-nonce='{$nonce}' data-url='{$ajax_url}' style='display:none;'></div>";
-}
-add_shortcode('ajax_data_block_client_profile', 'ajax_data_block_client_profile');
-
-function save_client_profile() {
- 
-	global $wpdb;
-
-    $messages = [];
-
-    if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'client_profile_nonce')) {
-        wp_send_json_error('Wrong token.');
-    } 
-
-    $payload = isset($_POST['data']) ? json_decode(stripslashes($_POST['data']), true) : [];
-    if (!$payload) {
-        wp_send_json_error('Payload is empty or invalid JSON.');
-    } 
-
-
-    $id          = isset($payload['id']) ? intval($payload['id']) : 0;
-    $first_name  = isset($payload['first_name']) ? sanitize_text_field($payload['first_name']) : '';
-    $last_name   = isset($payload['last_name']) ? sanitize_text_field($payload['last_name']) : '';
-    $email       = isset($payload['email']) ? sanitize_email($payload['email']) : '';
-    $postal_code = isset($payload['postal_code']) ? sanitize_text_field($payload['postal_code']) : '';
-    $phone_num   = isset($payload['phone_number']) ? sanitize_text_field($payload['phone_number']) : '';
-
-    if (empty($id)) {
-        wp_send_json_error('Client profile save: Missing or invalid customer ID.');
-    } 
-
-    $result = $wpdb->update(
-        'wp_custom_customers',
-        [
-            'postal_code'  => $postal_code,
-            'first_name'   => $first_name,
-            'last_name'    => $last_name,
-            'email'        => $email,
-            'phone_number' => $phone_num
-        ],
-        ['id' => $id],
-        ['%s','%s','%s','%s','%s'],
-        ['%d']
-    );
-
-    if ($result === false) {
-        $messages[] = 'Database update FAILED: ' . $wpdb->last_error;
-        wp_send_json_error($messages);
-    } elseif ($result === 0) {
-        $messages[] = 'Update executed, but no rows affected (data may be identical to current DB).';
-        wp_send_json_success($messages);
-    } else {
-        $messages[] = "Update successful. Rows affected: $result";
-        wp_send_json_success($messages);
-    }
-}
-add_action('wp_ajax_save_client_profile', 'save_client_profile');
-add_action('wp_ajax_nopriv_save_client_profile', 'save_client_profile');
 
 
 /* ========================================================================================================================================== */
