@@ -1654,83 +1654,74 @@ function ajax_data_block_client_order() {
 }
 add_shortcode('ajax_data_block_client_order', 'ajax_data_block_client_order');
 
-function process_images($new_list, $old_list) {
+function process_images_simple(array $new_list, array $file_list): array {
     $final_urls = [];
-    $messages   = [];
+    $messages = [];
 
-    // Make sure WP upload helpers are loaded
+    // Charger les helpers WordPress si nécessaire
     if (!function_exists('wp_handle_upload')) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         require_once(ABSPATH . 'wp-admin/includes/media.php');
         require_once(ABSPATH . 'wp-admin/includes/image.php');
     }
 
-    // Process new list
-    foreach ($new_list as $item) {
-        if (filter_var($item, FILTER_VALIDATE_URL)) {
-            // Already a URL → keep it
-            $final_urls[] = $item;
-        } else {
-            // It's a filename → look for the actual uploaded file
-            $file_found = false;
-            if (!empty($_FILES)) {
-                foreach ($_FILES as $file_field) {
-                    foreach ($file_field['name'] as $key => $filename) {
-                        if ($filename === $item) {
-                            $file_array = [
-                                'name'     => $file_field['name'][$key],
-                                'type'     => $file_field['type'][$key],
-                                'tmp_name' => $file_field['tmp_name'][$key],
-                                'error'    => $file_field['error'][$key],
-                                'size'     => $file_field['size'][$key],
-                            ];
-
-                            $upload_overrides = ['test_form' => false];
-                            $movefile = wp_handle_upload($file_array, $upload_overrides);
-
-                            if ($movefile && !isset($movefile['error'])) {
-                                $attachment = [
-                                    'post_mime_type' => $movefile['type'],
-                                    'post_title'     => sanitize_file_name($filename),
-                                    'post_content'   => '',
-                                    'post_status'    => 'inherit',
-                                ];
-
-                                $attach_id   = wp_insert_attachment($attachment, $movefile['file']);
-                                $attach_data = wp_generate_attachment_metadata($attach_id, $movefile['file']);
-                                wp_update_attachment_metadata($attach_id, $attach_data);
-
-                                $final_urls[] = wp_get_attachment_url($attach_id);
-                                $messages[] = "Uploaded $filename successfully";
-                            } else {
-                                $messages[] = "Failed to upload $filename";
-                            }
-                            $file_found = true;
-                        }
-                    }
-                }
+    // Upload direct des fichiers et récupération des URLs
+    if (!empty($file_list['name'])) {
+        $files_to_process = [];
+        foreach ($file_list['name'] as $i => $name) {
+            if ($file_list['error'][$i] === 0) {
+                $files_to_process[] = [
+                    'name' => $name,
+                    'type' => $file_list['type'][$i],
+                    'tmp_name' => $file_list['tmp_name'][$i],
+                    'error' => $file_list['error'][$i],
+                    'size' => $file_list['size'][$i],
+                ];
             }
+        }
 
-            if (!$file_found) {
-                $messages[] = "File $item not found in uploaded files";
+        foreach ($files_to_process as $file) {
+            $movefile = wp_handle_upload($file, ['test_form' => false]);
+            if ($movefile && !isset($movefile['error'])) {
+                $attach_id = wp_insert_attachment([
+                    'post_mime_type' => $movefile['type'],
+                    'post_title' => sanitize_file_name($file['name']),
+                    'post_content' => '',
+                    'post_status' => 'inherit',
+                ], $movefile['file']);
+
+                wp_update_attachment_metadata($attach_id, wp_generate_attachment_metadata($attach_id, $movefile['file']));
+                $final_urls[] = wp_get_attachment_url($attach_id);
+                $messages[] = "Uploaded {$file['name']} successfully";
+            } else {
+                $messages[] = "Failed to upload {$file['name']}";
             }
         }
     }
 
-    // Remove old items not in the new list
-    foreach ($old_list as $old_url) {
-        if (!in_array($old_url, $final_urls, true)) {
-            $attach_id = attachment_url_to_postid($old_url);
-            if ($attach_id) {
-                wp_delete_attachment($attach_id, true);
-                $messages[] = "Deleted old file: $old_url";
-            }
+    // Ajouter les URLs existantes (valide seulement si ce sont des URLs)
+    foreach ($new_list as $item) {
+        if (filter_var($item, FILTER_VALIDATE_URL)) {
+            $final_urls[] = $item;
         }
     }
 
     return [$final_urls, $messages];
 }
 
+function normalize_files_array($files) {
+    $normalized = [];
+    foreach ($files['name'] as $id => $names) {
+        foreach ($names as $index => $name) {
+            $normalized[$id]['name'][]     = $name;
+            $normalized[$id]['type'][]     = $files['type'][$id][$index];
+            $normalized[$id]['tmp_name'][] = $files['tmp_name'][$id][$index];
+            $normalized[$id]['error'][]    = $files['error'][$id][$index];
+            $normalized[$id]['size'][]     = $files['size'][$id][$index];
+        }
+    }
+    return $normalized;
+}
 
 function save_client_order() { 
     global $wpdb;
@@ -1747,13 +1738,30 @@ function save_client_order() {
 
     $results = [];
     $messages = [];
+	
+	//if (empty($decoded) && !empty($_FILES['images'])) {
+    //	wp_send_json_error('No payload decoded.');
+	//}
 
-    if (empty($decoded)) {
-        wp_send_json_error('No payload decoded.');
-    }
-
+	$all_files = !empty($_FILES['images']) ? normalize_files_array($_FILES['images']) : [];
     foreach ($decoded as $index => $item) {
-		$id          = isset($item["id"])           ? $item["id"]           : null;
+		$id = $item['id'] ?? 0;
+		$new_list = $item['image_url'] ?? [];
+		$uploaded_files = $all_files[$id] ?? [];
+
+		$updated_urls = [];
+		if (!empty($uploaded_files)) {
+			list($updated_urls, $upload_messages) = process_images_simple($new_list, $uploaded_files);
+			$messages = array_merge($messages, $upload_messages);
+		}
+
+		$dueDate = new DateTime($item['due_date']);
+		$formattedDueDate= $dueDate->format('Y-m-d');
+		$submitDate = new DateTime($item['submitted_date']);
+		$formattedSubmitDate= $submitDate->format('Y-m-d');
+		
+		$dueDate 	 = $formattedDueDate;
+		$submitDate	 = $formattedSubmitDate;
 		$model       = isset($item["model"])        ? $item["model"]        : null;
 		$modelType   = isset($item["model_type"])   ? $item["model_type"]   : null;
 		$width       = isset($item["width"])        ? formatFeetInches($item["width"]) : null;
@@ -1770,7 +1778,7 @@ function save_client_order() {
 		$info        = isset($item["info"])         ? $item["info"]         : null;
 		$orderStatus = isset($item["order_status"]) ? $item["order_status"] : null;
 		$teamSelected= isset($item["team_selected"])? $item["team_selected"]: null;
-		$accessories = isset($item["extras"])? $item["extras"]: null;
+		$newImageUrls = !empty($updated_urls) ? $updated_urls : [];
 		
         $fields = [
             'model'        => $model,
@@ -1785,10 +1793,11 @@ function save_client_order() {
             'post_qty'     => $postQty,
             'soldiers'     => $soldiers,
             'color'        => $color,
-            'accessories'  => $accessories,
+            'accessories'  => $extras,
             'info'         => $info,
 			'order_status' => $orderStatus,
-			'team_assigned' => $teamSelected
+			'team_assigned' => $teamSelected,
+			 'image_url' => !empty($newImageUrls) ? wp_json_encode($newImageUrls) : null,
         ];
 
     $fields = array_filter($fields, function($value) {
@@ -1829,15 +1838,15 @@ function save_client_order() {
       /*  $table_name = 'wp_forecast_table';
         $formats = array_fill(0, count($fields), '%s');
 
-        $result = $wpdb->update($table_name, $fields, ['id' => $forecast_id], $formats, ['%d']);
-
-        if ($result === false) {
+        $result = $wpdb->update($table_name, $fieif ($result === false) {
             $messages[] = 'Database update FAILED: ' . $wpdb->last_error;
         } elseif ($result === 0) {
             $messages[] = "Forecast ID $forecast_id: no rows changed";
         } else {
             $messages[] = "Forecast ID $forecast_id updated. Rows affected: $result";
-        }
+        }lds, ['id' => $forecast_id], $formats, ['%d']);
+
+        
     }
 
     wp_send_json_success($messages);
