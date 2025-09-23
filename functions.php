@@ -2106,43 +2106,99 @@ function ajax_data_block_send_email() {
 }
 add_shortcode('ajax-data-block-send-email', 'ajax_data_block_send_email');
 
-function send_popup_email() {
-	
-	if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'send_email_nonce')) {
+function send_team_notification_email() {
+    global $wpdb;
+
+    if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'send_email_nonce')) {
         wp_send_json_error('Wrong token.');
     }
 
-    $messages = [];
-
-    // Emails
     $emailListRaw = isset($_POST['email']) ? (array) $_POST['email'] : [];
-    $messages[] = $emailListRaw;
-
-    // Message content
-    $emailContent = isset($_POST['msg']) ? sanitize_textarea_field($_POST['msg']) : '';
-    $messages[] = $emailContent;
-
-    // Subject
-    $subject = 'NEW ORDER';
-
-    // Sanitize emails
     $emailList = array_filter(array_map('sanitize_email', $emailListRaw), 'is_email');
-    $messages[] = $emailList;
-
     if (empty($emailList)) {
         wp_send_json_error(['message' => 'No valid email addresses provided.']);
     }
 
-    $sentStatus = wp_mail($emailList, $subject, $emailContent);
-	if ($sentStatus){
-		wp_send_json_success(['message' => $sentStatus]);		
-	}else{
-		 wp_send_json_error(['message' => 'Error sending email.']);
-	}
+    $emailNote = isset($_POST['msg']) ? sanitize_textarea_field($_POST['msg']) : '';
+    $forecastId = isset($_POST['forecastId']) ? intval($_POST['forecastId']) : 0;
+    if (!$forecastId) {
+        wp_send_json_error('No order detected.');
+    }
 
+    $order = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM wp_forecast_table WHERE id = %d", $forecastId),
+        ARRAY_A
+    );
+
+    if (!$order) {
+        wp_send_json_error('No order found.');
+    }
+
+    $subject = "New Order #{$order['id']} Notification";
+
+    $accessories = json_decode($order['accessories']);
+    $accessoriesList = is_array($accessories) ? implode(', ', $accessories) : '';
+
+    // Build HTML email
+    $body = '
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.4; }
+        .order-info { margin-bottom: 15px; }
+        .order-info span { display: inline-block; min-width: 120px; font-weight: bold; }
+        img { max-width: 100%; height: auto; margin-top: 5px; margin-bottom: 5px; }
+    </style>
+    </head>
+    <body>
+        <h2>Order #' . $order['id'] . ' Notification</h2>
+        <div class="order-info">
+            <div><span>Customer ID:</span> ' . $order['customer_id'] . '</div>
+            <div><span>Model:</span> ' . $order['model'] . '</div>
+			<div><span>Model Type:</span> ' . $order['model_type'] . '</div>
+            <div><span>Size:</span> ' . $order['width'] . ' x ' . $order['depth'] . '</div>
+            <div><span>Louver:</span> ' . $order['louver_size'] . ' x ' . $order['louver_qty'] . '</div>
+            <div><span>Soldiers:</span> ' . $order['soldiers'] . '</div>
+            <div><span>Subframe:</span> ' . $order['subframe_size'] . ' x ' . $order['subframe_qty'] . '</div>
+            <div><span>Post:</span> ' . $order['post_size'] . ' x ' . $order['post_qty'] . '</div>
+            <div><span>Color:</span> ' . $order['color'] . '</div>
+            <div><span>Due Date:</span> ' . $order['due_date'] . '</div>
+            <div><span>Entry Date:</span> ' . $order['entry_date'] . '</div>
+            <div><span>Accessories:</span> ' . $accessoriesList . '</div>
+            <div><span>Team Assigned:</span> ' . $order['team_assigned'] . '</div>
+            <div><span>Info:</span> ' . $order['info'] . '</div>
+        </div>
+    ';
+
+    if (!empty($emailNote)) {
+        $body .= '<div><span>Note:</span> ' . htmlspecialchars($emailNote) . '</div>';
+    }
+
+    $images = json_decode($order['image_url']);
+    if ($images && is_array($images)) {
+        foreach ($images as $img) {
+            $body .= '<img src="' . esc_url($img) . '" alt="Order Image">';
+        }
+    }
+
+    $body .= '</body></html>';
+
+    add_filter('wp_mail_content_type', function() { return 'text/html'; });
+	$sentStatus = wp_mail($emailList, $subject, $body);
+	remove_filter('wp_mail_content_type', function() { return 'text/html'; });
+    
+	if ($sentStatus) {
+        wp_send_json_success(['message' => $sentStatus]);
+    } else {
+        wp_send_json_error(['message' => 'Error sending email.']);
+    }
 }
-add_action('wp_ajax_send_popup_email', 'send_popup_email');
-add_action('wp_ajax_nopriv_send_popup_email', 'send_popup_email');
+
+add_action('wp_ajax_send_popup_email', 'send_team_notification_email');
+add_action('wp_ajax_nopriv_send_popup_email', 'send_team_notification_email');
+
 
 // Query DB for tasks due and send email
 function send_email($to, $subject, $message, $addToCalendar){
