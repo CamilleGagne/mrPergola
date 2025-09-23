@@ -9,14 +9,21 @@ jQuery(document).ready(function () {
 				msgContainer = document.getElementById('email-content');
 				emailAddress = document.getElementById('email-1');
 				sendEmailBtn = document.getElementById('email_notification_send_btn');
-			
+
+			 //Get id of active forecast
+			 var forecastTable = document.getElementById('customerTable');
+			 var checkbox = forecastTable.querySelector('tbody tr input[type="checkbox"]:checked');
+			 if (!checkbox) {return null;}
+			 var row = checkbox.closest('tr');
+			 var forecastId = row.dataset.id; 
 			
 			if (sendEmailBtn){
 				sendEmailBtn.disabled = true;	
 			}		
 			
 			if (msgContainer){
-					msgContainer.value='This is a test of a text';
+					msgContainer.placeholder ='Enter any notes you may have';
+					//msgContainer.value='A new order has been assigned to you.';
 			}
 			
 			emailAddress.addEventListener('change', function(){
@@ -70,7 +77,7 @@ jQuery(document).ready(function () {
 						}).filter(function(v){ return v; });
 
 						var emailContent = msgContainer ? msgContainer.value : '';
-
+					
 						var formData = new FormData();
 						formData.append('_wpnonce', ajaxNonce);
 						formData.append('action','send_popup_email');
@@ -78,6 +85,7 @@ jQuery(document).ready(function () {
 								formData.append('email[]', emailValues[i]);
 						}
 						formData.append('msg', emailContent);
+						formData.append('forecastId', forecastId);
 
 						fetch('/wp-admin/admin-ajax.php', {
 								method: 'POST',
