@@ -347,7 +347,7 @@ function save_forecast_form() {
 			'custom_fields' => json_encode($customFields),
 			'status'        => $status,
 			'order_status'  => $orderStatus,
-			'image_url'     => json_encode($imageUrls),
+			'image_url'     => json_encode($imageUrls)
 		],
 		['%d','%s','%s','%s','%s','%s','%s','%s','%s','%s',
 		 '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s']
@@ -1413,6 +1413,9 @@ add_shortcode('show_todo_data', 'display_todo_table');
 /* ---------------------------- Display list of all customers ---------------------------- */
 function display_customer_data() {
 	global $wpdb;
+	global $customValuesToCheck;
+	$customFlags = [];
+	$customStyle = 'color: blue;';
 	
 	$query =
 		  "SELECT c.*, f.* 
@@ -1446,6 +1449,14 @@ function display_customer_data() {
 	echo '<tbody>';
 		
 	foreach ($results as $row) {
+		if ($row->custom_fields){
+			$customValuesArray = json_decode($row->custom_fields, true);
+			
+			foreach ($customValuesToCheck as $value) {
+				$customFlags[$value] = in_array($value, array_map('trim', $customValuesArray));
+			}
+		}	
+		
 		$formatted_entry_date = date('d/m', strtotime($row->entry_date));
 		$formatted_due_date = date('d/m', strtotime($row->due_date));
 		$profile_url = 'customer-profile.php?id=' . urlencode($row->id);
@@ -1458,8 +1469,8 @@ function display_customer_data() {
 		echo '<td>' . esc_attr($formatted_due_date) . '</td>';
 		echo '<td> ' . esc_attr($row->model) . '</td>';
 		echo '<td> ' . esc_attr($row->model_type) . '</td>';
-		echo '<td>' . esc_attr($row->width) . '</td>';
-		echo '<td>' . esc_attr($row->depth) . '</td>';
+		echo '<td style="' . ($customFlags['width'] ? $customStyle : '') . '">' . esc_html($row->width) . '</td>';
+		echo '<td style="' . ($customFlags['depth'] ? $customStyle : '') . '">' . esc_html($row->depth) . '</td>';
 		echo '<td>' . esc_attr($row->color) . '</td>';
 		echo '<td>' . esc_html(implode(', ', (array) $accessories)) . '</td>';
 		echo '<td>' . esc_attr($row->postal_code) . '</td>';
@@ -1654,7 +1665,37 @@ function ajax_data_block_client_order() {
 }
 add_shortcode('ajax_data_block_client_order', 'ajax_data_block_client_order');
 
-function process_images_simple(array $new_list, array $file_list): array {
+function get_attachment_id_from_url($url) {
+    global $wpdb;
+
+    // First try the native function
+    $attachment_id = attachment_url_to_postid($url);
+    if ($attachment_id) {
+        return $attachment_id;
+    }
+
+    // Extract filename
+    $filename = wp_basename($url);
+
+    // Remove common WordPress suffixes (-scaled, -150x150, etc.)
+    $filename = preg_replace('/-\d+x\d+(?=\.(jpg|jpeg|png|gif|webp)$)/i', '', $filename);
+    $filename = str_replace('-scaled', '', $filename);
+
+    // Look up by sanitized post_title
+    $attachment_id = $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts} 
+             WHERE post_type = 'attachment' 
+             AND post_title = %s 
+             LIMIT 1",
+            pathinfo($filename, PATHINFO_FILENAME)
+        )
+    );
+
+    return $attachment_id ?: 0;
+}
+
+function process_images_simple(array $saved_list, array $new_file_list, array $active_list): array {
     $final_urls = [];
     $messages = [];
 
@@ -1665,42 +1706,110 @@ function process_images_simple(array $new_list, array $file_list): array {
         require_once(ABSPATH . 'wp-admin/includes/image.php');
     }
 
-    // Upload direct des fichiers et récupération des URLs
-    if (!empty($file_list['name'])) {
+    if (!empty($new_file_list['name'])) {
         $files_to_process = [];
-        foreach ($file_list['name'] as $i => $name) {
-            if ($file_list['error'][$i] === 0) {
+        foreach ($new_file_list['name'] as $i => $name) {
+            if ($new_file_list['error'][$i] === 0) {
                 $files_to_process[] = [
-                    'name' => $name,
-                    'type' => $file_list['type'][$i],
-                    'tmp_name' => $file_list['tmp_name'][$i],
-                    'error' => $file_list['error'][$i],
-                    'size' => $file_list['size'][$i],
+                    'name'     => $name,
+                    'type'     => $new_file_list['type'][$i],
+                    'tmp_name' => $new_file_list['tmp_name'][$i],
+                    'error'    => $new_file_list['error'][$i],
+                    'size'     => $new_file_list['size'][$i],
                 ];
             }
         }
 
         foreach ($files_to_process as $file) {
             $movefile = wp_handle_upload($file, ['test_form' => false]);
+
             if ($movefile && !isset($movefile['error'])) {
+                // Redimensionner seulement les images
+                $editor = wp_get_image_editor($movefile['file']);
+                if (!is_wp_error($editor)) {
+                    $editor->resize(1200, 1200, false);
+                    $editor->save($movefile['file']);
+                }
+
+                // Insérer l'attachement dans WordPress
                 $attach_id = wp_insert_attachment([
                     'post_mime_type' => $movefile['type'],
-                    'post_title' => sanitize_file_name($file['name']),
-                    'post_content' => '',
-                    'post_status' => 'inherit',
+                    'post_title'     => sanitize_file_name($file['name']),
+                    'post_content'   => '',
+                    'post_status'    => 'inherit',
                 ], $movefile['file']);
 
-                wp_update_attachment_metadata($attach_id, wp_generate_attachment_metadata($attach_id, $movefile['file']));
+                // Générer et mettre à jour les métadonnées
+                $metadata = wp_generate_attachment_metadata($attach_id, $movefile['file']);
+                wp_update_attachment_metadata($attach_id, $metadata);
+
+                // Assurer que _wp_attached_file est correct
+                update_post_meta($attach_id, '_wp_attached_file', _wp_relative_upload_path($movefile['file']));
+
+                // Récupérer l'URL finale
                 $final_urls[] = wp_get_attachment_url($attach_id);
-                $messages[] = "Uploaded {$file['name']} successfully";
+                $messages[] = "Uploaded {$file['name']} successfully (ID: $attach_id)";
             } else {
                 $messages[] = "Failed to upload {$file['name']}";
             }
         }
     }
 
-    // Ajouter les URLs existantes (valide seulement si ce sont des URLs)
-    foreach ($new_list as $item) {
+    $messages[] = "Saved list: " . print_r($saved_list, true);
+    $messages[] = "Active list: " . print_r($active_list, true);
+
+    $list_to_delete = array_diff($saved_list, $active_list);
+    $messages[] = "List to delete (difference): " . print_r($list_to_delete, true);
+
+    foreach ($list_to_delete as $url) {
+        $attachment_id = attachment_url_to_postid($url);
+
+        // Si WordPress ne connaît pas l'attachement, supprimer directement via le chemin
+        if (!$attachment_id) {
+            $messages[] = "Attachment non trouvé dans WordPress pour : $url";
+
+            // Essayer de deviner le chemin physique
+            $upload_dir = wp_upload_dir();
+            $relative_path = str_replace($upload_dir['baseurl'], '', $url);
+            $file_path = $upload_dir['basedir'] . $relative_path;
+
+            if (file_exists($file_path)) {
+                @unlink($file_path);
+                $messages[] = "Fichier supprimé physiquement : $file_path";
+            } else {
+                $messages[] = "Impossible de trouver le fichier sur le serveur : $file_path";
+            }
+
+            continue;
+        }
+
+        $file = get_attached_file($attachment_id);
+        if ($file && file_exists($file)) {
+            // Supprimer les tailles générées
+            $metadata = wp_get_attachment_metadata($attachment_id);
+            if (!empty($metadata['sizes'])) {
+                $dir = dirname($file);
+                foreach ($metadata['sizes'] as $size) {
+                    $size_file = path_join($dir, $size['file']);
+                    if (file_exists($size_file)) {
+                        @unlink($size_file);
+                        $messages[] = "Supprimé : $size_file";
+                    }
+                }
+            }
+
+            // Supprimer le fichier original
+            @unlink($file);
+            $messages[] = "Fichier original supprimé : $file";
+        } else {
+            $messages[] = "Fichier introuvable sur le disque pour l'attachement $attachment_id";
+        }
+
+        // Supprimer l'attachement dans WordPress
+        $result = wp_delete_attachment($attachment_id, true);
+        $messages[] = $result ? "Attachment $attachment_id supprimé de WordPress" : "Échec suppression DB pour $attachment_id";
+    }
+    foreach ($active_list as $item) {
         if (filter_var($item, FILTER_VALIDATE_URL)) {
             $final_urls[] = $item;
         }
@@ -1726,7 +1835,6 @@ function normalize_files_array($files) {
 function save_client_order() { 
     global $wpdb;
 
-    // Vérif du nonce
     if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'client_order_nonce')) {
         wp_send_json_error('Wrong token.');
     }
@@ -1738,123 +1846,146 @@ function save_client_order() {
 
     $results = [];
     $messages = [];
-	
-	//if (empty($decoded) && !empty($_FILES['images'])) {
-    //	wp_send_json_error('No payload decoded.');
-	//}
 
 	$all_files = !empty($_FILES['images']) ? normalize_files_array($_FILES['images']) : [];
-    foreach ($decoded as $index => $item) {
+	$response_messages = [];
+
+	foreach ($decoded as $index => $item) {
 		$id = $item['id'] ?? 0;
-		$new_list = $item['image_url'] ?? [];
-		$uploaded_files = $all_files[$id] ?? [];
-
-		$updated_urls = [];
-		if (!empty($uploaded_files)) {
-			list($updated_urls, $upload_messages) = process_images_simple($new_list, $uploaded_files);
-			$messages = array_merge($messages, $upload_messages);
-		}
-
-		$dueDate = new DateTime($item['due_date']);
-		$formattedDueDate= $dueDate->format('Y-m-d');
-		$submitDate = new DateTime($item['submitted_date']);
-		$formattedSubmitDate= $submitDate->format('Y-m-d');
-		
-		$dueDate 	 = $formattedDueDate;
-		$submitDate	 = $formattedSubmitDate;
-		$model       = isset($item["model"])        ? $item["model"]        : null;
-		$modelType   = isset($item["model_type"])   ? $item["model_type"]   : null;
-		$width       = isset($item["width"])        ? formatFeetInches($item["width"]) : null;
-		$depth       = isset($item["depth"])        ? formatFeetInches($item["depth"]) : null;
-		$louverSize  = isset($item["louver_size"])  ? $item["louver_size"]  : null;
-		$louverQty   = isset($item["louver_qty"])   ? formatFeetInches($item["louver_qty"]) : null;
-		$subframeSize= isset($item["subframe_size"])? $item["subframe_size"] : null;
-		$subframeQty = isset($item["subframe_qty"]) ? formatFeetInches($item["subframe_qty"]) : null;
-		$postSize    = isset($item["post_size"])    ? $item["post_size"]    : null;
-		$postQty     = isset($item["post_qty"])     ? formatFeetInches($item["post_qty"]) : null;
-		$soldiers    = isset($item["soldiers"])     ? $item["soldiers"]     : null;
-		$color       = isset($item["color"])        ? $item["color"]        : null;
-		$extras      = isset($item["extras"])       ? $item["extras"]       : null;
-		$info        = isset($item["info"])         ? $item["info"]         : null;
-		$orderStatus = isset($item["order_status"]) ? $item["order_status"] : null;
-		$teamSelected= isset($item["team_selected"])? $item["team_selected"]: null;
+		$saved_list = $item['image_url'] ?? [];
+		$active_list = $item['currentImageList'] ?? [];
+				
+		$new_files = $all_files[$id] ?? [];
+		list($updated_urls, $image_messages) = process_images_simple($saved_list, $new_files, $active_list);
+		$response_messages = array_merge($response_messages, $image_messages);
 		$newImageUrls = !empty($updated_urls) ? $updated_urls : [];
+
+		$dueDate = !empty($item['due_date']) ? new DateTime(sanitize_text_field($item['due_date'])) : null;
+		$formattedDueDate = $dueDate ? $dueDate->format('Y-m-d') : null;
+		$submittedDate = !empty($item['submitted_date']) ? new DateTime(sanitize_text_field($item['submitted_date'])) : null;
+		$formattedSubmittedDate = $submittedDate ? $submittedDate->format('Y-m-d') : null;
 		
-        $fields = [
-            'model'        => $model,
-            'model_type'   => $modelType,
-            'width'        => $width,
-            'depth'        => $depth,
-            'louver_size'  => $louverSize,
-            'louver_qty'   => $louverQty,
-            'subframe_size'=> $subframeSize,
-            'subframe_qty' => $subframeQty,
-            'post_size'    => $postSize,
-            'post_qty'     => $postQty,
-            'soldiers'     => $soldiers,
-            'color'        => $color,
-            'accessories'  => $extras,
-            'info'         => $info,
-			'order_status' => $orderStatus,
-			'team_assigned' => $teamSelected,
-			 'image_url' => !empty($newImageUrls) ? wp_json_encode($newImageUrls) : null,
-        ];
-
-    $fields = array_filter($fields, function($value) {
-        return $value !== null;
-    });
-
-		if (empty($fields)) {
-			continue;
-		}
-
-		$formats = array_fill(0, count($fields), '%s');
-
-		$result = $wpdb->update(
-			'wp_forecast_table',
-			$fields,
-			['id' => $id],
-			$formats,
-			['%d']
-		);
-
-		$messages[] = [
-			"row"             => $index,
-			"fields"          => $fields,
-			"wpdb_last_query" => $wpdb->last_query,
-			"wpdb_last_error" => $wpdb->last_error,
-			"update_result"   => $result
+		$accessories   = isset($item['extras']) && is_array($item['extras']) ? array_map('trim', $item['extras']) : [];
+	
+		$fields = [
+			'due_date'	   => $item['due_date'] ?? null,
+			'entry_date'   => $item['submitted_date'] ?? null,	
+			'model'        => $item["model"] ?? null,
+			'model_type'   => $item["model_type"] ?? null,
+			'width'        => isset($item["width"]) ? formatFeetInches($item["width"]) : null,
+			'depth'        => isset($item["depth"]) ? formatFeetInches($item["depth"]) : null,
+			'louver_size'  => $item["louver_size"] ?? null,
+			'louver_qty'   => isset($item["louver_qty"]) ? formatFeetInches($item["louver_qty"]) : null,
+			'subframe_size'=> $item["subframe_size"] ?? null,
+			'subframe_qty' => isset($item["subframe_qty"]) ? formatFeetInches($item["subframe_qty"]) : null,
+			'post_size'    => $item["post_size"] ?? null,
+			'post_qty'     => isset($item["post_qty"]) ? formatFeetInches($item["post_qty"]) : null,
+			'soldiers'     => $item["soldiers"] ?? null,
+			'color'        => $item["color"] ?? null,
+			'accessories'  => !empty($accessories) ? wp_json_encode($accessories, JSON_UNESCAPED_SLASHES) : null,
+			'info'         => $item["info"] ?? null,
+			'order_status' => $item["order_status"] ?? null,
+			'team_assigned'=> $item["team_selected"] ?? null,
+			'image_url'    => !empty($newImageUrls) ? wp_json_encode($newImageUrls, JSON_UNESCAPED_SLASHES) : null,
 		];
-    }
 
-    wp_send_json_success([
-        "payload_received" => $decoded,
-        "update_results"   => $results,
-        "troubleshooting"  => $messages
-    ]);
+		$fields = array_filter($fields, fn($v) => $v !== null);
+
+		if (!empty($fields)) {
+			$formats = array_fill(0, count($fields), '%s');
+			$result = $wpdb->update(
+				'wp_forecast_table',
+				$fields,
+				['id' => $id],
+				$formats,
+				['%d']
+			);
+
+			$response_messages[] = [
+				"row" => $index,
+				"id" => $id,
+				"update_result" => $result,
+				"wpdb_last_query" => $wpdb->last_query,
+				"wpdb_last_error" => $wpdb->last_error,
+				"image_messages" => $image_messages
+			];
+		}
+	}
+
+	// Send back everything for troubleshooting
+	wp_send_json_success([
+		"payload_received" => $decoded,
+		"update_results" => [], // can populate if needed
+		"troubleshooting" => $response_messages
+	]);
 }
-	
-	
-      /*  $table_name = 'wp_forecast_table';
-        $formats = array_fill(0, count($fields), '%s');
-
-        $result = $wpdb->update($table_name, $fieif ($result === false) {
-            $messages[] = 'Database update FAILED: ' . $wpdb->last_error;
-        } elseif ($result === 0) {
-            $messages[] = "Forecast ID $forecast_id: no rows changed";
-        } else {
-            $messages[] = "Forecast ID $forecast_id updated. Rows affected: $result";
-        }lds, ['id' => $forecast_id], $formats, ['%d']);
-
-        
-    }
-
-    wp_send_json_success($messages);
-}*/
 
 // Hook it up
 add_action('wp_ajax_save_client_order', 'save_client_order');
 add_action('wp_ajax_nopriv_save_client_order', 'save_client_order');
+
+
+/* ---------------------------- Update Order Status and Send Email ---------------------------- */
+ 
+function update_status_and_email(){
+	 global $wpdb;
+
+    // Vérif du nonce
+    if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'client_order_nonce')) {
+        wp_send_json_error('Wrong token.');
+    }
+
+    $payload = isset($_POST['data']) ? json_decode(stripslashes($_POST['data']), true) : [];
+    if (!$payload) {
+        wp_send_json_error('Payload is empty or invalid JSON.');
+    } 
+
+
+    $id          		= isset($payload['forecastId']) ? intval($payload['forecastId']) : 0;
+    $order_status		= isset($payload['orderStatus']) ? sanitize_text_field($payload['orderStatus']) : '';
+	$email 				= isset($payload['email']) ? sanitize_text_field($payload['email']) : '';
+  
+    if (empty($id)) {
+        wp_send_json_error('Forecast ID missing.');
+    } 
+	
+	 if (empty($email)) {
+        wp_send_json_error('No email for this customer.');
+    } 
+
+    $result = $wpdb->update(
+        'wp_forecast_table',
+        [
+            'order_status'  			  => $order_status,
+            'order_status_notification'   => $order_status,
+        ],
+        ['id' => $id],
+        ['%s','%s'],
+        ['%d']
+    );
+
+    if ($result === false) {
+        $messages[] = 'Database update FAILED: ' . $wpdb->last_error;
+        wp_send_json_error($messages);
+    } elseif ($result === 0) {
+        $messages[] = 'Update executed, but no rows affected (data may be identical to current DB).';
+        wp_send_json_success($messages);
+    } else {
+        $messages[] = "Update successful. Rows affected: $result";
+		$subject = 'Status Update';
+		$emailContent = 'New status for your order.';
+		$sentStatus = wp_mail($email, $subject, $emailContent);
+		if($sentStatus){
+			 wp_send_json_success($messages);
+		}else{
+			wp_send_json_error(['message' => 'Insert failed']);
+		}
+    }
+}
+
+
+add_action('wp_ajax_update_status_and_email', 'update_status_and_email');
+add_action('wp_ajax_nopriv_update_status_and_email', 'update_status_and_email');
 
 
 /* ---------------------------- Show Customer Notes ---------------------------- */
@@ -1968,6 +2099,50 @@ add_action('wp_ajax_nopriv_save_client_note', 'save_client_note');
 /* ========================================================================================================================================== */
 /*                                                       EMAIL TASK                                                                           */
 /* ========================================================================================================================================== */
+function ajax_data_block_send_email() {
+    $nonce = wp_create_nonce('send_email_nonce');
+    $ajax_url = admin_url('admin-ajax.php');
+    return "<div id='ajax-data-block-send-email' data-nonce='{$nonce}' data-url='{$ajax_url}' style='display:none;'></div>";
+}
+add_shortcode('ajax-data-block-send-email', 'ajax_data_block_send_email');
+
+function send_popup_email() {
+	
+	if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'send_email_nonce')) {
+        wp_send_json_error('Wrong token.');
+    }
+
+    $messages = [];
+
+    // Emails
+    $emailListRaw = isset($_POST['email']) ? (array) $_POST['email'] : [];
+    $messages[] = $emailListRaw;
+
+    // Message content
+    $emailContent = isset($_POST['msg']) ? sanitize_textarea_field($_POST['msg']) : '';
+    $messages[] = $emailContent;
+
+    // Subject
+    $subject = 'NEW ORDER';
+
+    // Sanitize emails
+    $emailList = array_filter(array_map('sanitize_email', $emailListRaw), 'is_email');
+    $messages[] = $emailList;
+
+    if (empty($emailList)) {
+        wp_send_json_error(['message' => 'No valid email addresses provided.']);
+    }
+
+    $sentStatus = wp_mail($emailList, $subject, $emailContent);
+	if ($sentStatus){
+		wp_send_json_success(['message' => $sentStatus]);		
+	}else{
+		 wp_send_json_error(['message' => 'Error sending email.']);
+	}
+
+}
+add_action('wp_ajax_send_popup_email', 'send_popup_email');
+add_action('wp_ajax_nopriv_send_popup_email', 'send_popup_email');
 
 // Query DB for tasks due and send email
 function send_email($to, $subject, $message, $addToCalendar){
@@ -1982,7 +2157,13 @@ function send_email($to, $subject, $message, $addToCalendar){
 	}
 		
 	$headers = array('Content-Type: text/html; charset=UTF-8');
-	wp_mail($to, $subject, $message, $headers);
+	//wp_mail($to, $subject, $message, $headers);
+	$sent = wp_mail($to, $subject, $message, $headers);
+	if ($sent) {
+		return 'Email successfully sent';
+	} else {
+		return 'There was an error sending the email';
+	}
 }
 
 function send_task_reminder_emails() {
