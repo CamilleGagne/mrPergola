@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var files = Array.from(input.files);
     if (input.files.length === 0) {
         fileList.textContent = 'No file selected';
+				fileList.style.setProperty('padding-top', '7px', 'important');
         return;
     }
 		
@@ -116,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (fileList.children.length === 0) {
                 fileList.textContent = 'No file selected';
+							  fileList.style.setProperty('padding-top', '7px', 'important');
             }
         });
 
@@ -160,9 +162,11 @@ function getIdFromUrl(){
 	
 	
 function notifyCustomer(){
+	showLoading();
 	var f = getCheckedRow();
 	if (orderStatus && orderStatus.value === f.order_status_notification){
-		alert('Customer was already notified for order this status.');
+		hideLoading();
+		alert('Customer was already notified for this order status.');
 	}else{
 		var ajaxDataDiv = document.getElementById('ajax-data-block-client-order');
 		var ajaxNonce = ajaxDataDiv.getAttribute('data-nonce');
@@ -188,11 +192,12 @@ function notifyCustomer(){
 			return response.json();
 			// Parse response as JSON
 		}).then(function(data) {
-			hideLoading();
 			if (data && data.success) {
 				location.reload();
-				alert('Customer\'s info successfully saved!');
+				getActiveTabAndReload();
+				//alert('Customer was successfully sent an email!');
 			} else {
+				hideLoading();
 				alert('Error while saving your table: ' + data.data);
 			}
 		}).catch(function(error) {
@@ -226,7 +231,12 @@ function populatePage(data){
 
 		if (data.forecasts[0].image_url){
 				loadDocs(data.forecasts[0].image_url);
-		}	
+		}	else{
+			if (fileList) {
+        fileList.textContent = 'No file selected';
+				fileList.style.setProperty('padding-top', '7px', 'important');
+    	}
+		}
 	}
 	
   renderForecastTable(data);
@@ -238,14 +248,26 @@ function populatePage(data){
 
 // Load existing URLs into the file list
 function loadDocs(docs) {
-    if (!Array.isArray(docs)) {docs = [];}
+    if (!Array.isArray(docs)) {
+        docs = [];
+    }
 
-    docs.forEach(function(url) {
-        fileList.appendChild(createFileItem(url, function() {
-            if (fileList.children.length === 0) {
-							fileList.textContent = 'No file selected';}
-        }, true)); // true = it's a URL
-    });
+    fileList.textContent = '';
+		fileList.style.setProperty('padding-top', '7px', 'important');
+
+    if (docs.length > 0) {
+        docs.forEach(function (url) {
+            fileList.appendChild(createFileItem(url, function () {
+                if (fileList.children.length === 0) {
+                    fileList.textContent = 'No file selected';
+									  fileList.style.setProperty('padding-top', '7px', 'important');
+                }
+            }, true)); // true = it's a URL
+        });
+    } else {
+        fileList.textContent = 'No file selected';
+				fileList.style.setProperty('padding-top', '7px', 'important');
+    }
 }
 	
 // Helper to create a list item for a file or URL
@@ -328,14 +350,25 @@ function renderForecastTable(data){
     html += '<th>Info</th>';
     html += '</tr></thead><tbody>';
 
-    var customStyle = 'color: blue;';
-
+    var customStyle = 'color: blue;';	
     for (var i = 0; i < data.forecasts.length; i++) {
         var forecast = data.forecasts[i];
         var accessories = forecast.accessories || [];
-        var customFlags = forecast.custom_fields;
         var formattedEntryDate = forecast.entry_date ? (new Date(forecast.entry_date)).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit' }) : '';
         var formattedDueDate = forecast.due_date ? (new Date(forecast.due_date)).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit' }) : '';
+
+				 var customFlags = {};
+					if (forecast.custom_fields) {
+							var customValuesArray = JSON.parse(forecast.custom_fields).map(function(v) { 
+									return v.trim(); 
+							});
+
+							// Create a flag for each value in the array
+							for (var j = 0; j < customValuesArray.length; j++) {
+									var key = customValuesArray[j];
+									customFlags[key] = true;
+							}
+					}
 
 			  html += '<tr data-id="' + forecast.id + '">';
 				html += '<td><input type="checkbox" class="forecast-select" value="' + forecast.id + '"' + (i === 0 ? ' checked' : '') + '></td>';
@@ -343,14 +376,14 @@ function renderForecastTable(data){
         html += '<td contenteditable="true">' + (forecast.due_date ? formattedDueDate : '') + '</td>';
         html += '<td contenteditable="true">' + (forecast.model || '') + '</td>';
         html += '<td contenteditable="true">' + (forecast.model_type || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.width) ? customStyle : '') + '">' + (forecast.width || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.depth) ? customStyle : '') + '">' + (forecast.depth || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.subSize) ? customStyle : '') + '">' + (forecast.subframe_size || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.subQty) ? customStyle : '') + '">' + (forecast.subframe_qty || '') + '</td>';
+			  html += '<td contenteditable="true" style="' + (customFlags.width ? customStyle : '') + '">' + (forecast.width || '') + '</td>';
+				html += '<td contenteditable="true" style="' + (customFlags.depth ? customStyle : '') + '">' + (forecast.depth || '') + '</td>';
+				html += '<td contenteditable="true" style="' + (customFlags.subSize ? customStyle : '') + '">' + (forecast.subframe_size || '') + '</td>';
+				html += '<td contenteditable="true" style="' + (customFlags.subQty ? customStyle : '') + '">' + (forecast.subframe_qty || '') + '</td>';
         html += '<td contenteditable="true">' + (forecast.louver_size || '') + '</td>';
         html += '<td contenteditable="true">' + (forecast.louver_qty || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.postSize) ? customStyle : '') + '">' + (forecast.post_size || '') + '</td>';
-        html += '<td contenteditable="true" style="' + ((customFlags && customFlags.postQty) ? customStyle : '') + '">' + (forecast.post_qty || '') + '</td>';
+				html += '<td contenteditable="true" style="' + (customFlags.postSize ? customStyle : '') + '">' + (forecast.post_size || '') + '</td>';
+				html += '<td contenteditable="true" style="' + (customFlags.postQty ? customStyle : '') + '">' + (forecast.post_qty || '') + '</td>';
         html += '<td contenteditable="true">' + (forecast.soldiers || '') + '</td>';
         html += '<td contenteditable="true">' + (forecast.color || '') + '</td>';
         html += '<td contenteditable="true">' + (accessories.join(', ')) + '</td>';
@@ -615,10 +648,13 @@ function saveCustomerOrders(){
 						// Split by comma and trim each item
 						forecast.extras = extrasText.split(',').map(function(item) { return item.trim(); });
 				} else {
+						// Single item, still as an array
 						forecast.extras = [extrasText];
 				}
-			
+				
+				console.log(JSON.stringify(forecast));
 				forecasts.push(forecast);
+				console.log(JSON.stringify(forecasts));
 			}
 		}
 		
@@ -664,6 +700,10 @@ function saveCustomerOrders(){
 		}
 		
 		formData.append('data', JSON.stringify(forecasts));
+		console.log('data field:', formData.get('data'));
+		formData.forEach(function(value, key){
+    	console.log(key, value);
+		});
 		
 		// Send the AJAX request
 		fetch('/wp-admin/admin-ajax.php', {
