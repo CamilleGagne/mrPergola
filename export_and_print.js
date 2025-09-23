@@ -33,7 +33,7 @@ function cloneTable(pageTitle){
 		}
 	}else if(pageTitle.includes('Fixlist') && pageTitle.includes('Mr Pergola')){
 		table = document.getElementById('fixlistTable_' + selectedIndex);
-		title = 'Fixlist' + status;
+		title = 'Services' + status;
 	}else if(pageTitle.includes('To Do List') && pageTitle.includes('Mr Pergola')){
 		table = document.getElementById('todoTable_' + selectedIndex);
 		title = 'To Do List' + status;
@@ -50,20 +50,19 @@ function cloneTable(pageTitle){
 	var clonedTable = table.cloneNode(true);
 
 	if (table.id !== 'materialTable') {
-		var headers = clonedTable.getElementsByTagName('th');
-		var statusIndex = 0;
+			var headerRow = clonedTable.tHead.rows[1]; // second row in <thead>
+			var statusIndex = 0;
 
-		if (headers.length > statusIndex) {
-			headers[statusIndex].remove();
-		}
-
-		var rows = clonedTable.getElementsByTagName('tr');
-		for (var j = 0; j < rows.length; j++) {
-			var cells = rows[j].getElementsByTagName('td');
-			if (cells.length > statusIndex) {
-				rows[j].deleteCell(statusIndex);
+			if (headerRow.cells.length > statusIndex) {
+					headerRow.deleteCell(statusIndex); // remove the status <th>
 			}
-		}
+
+			var rows = clonedTable.tBodies[0].rows; // all <tbody> rows
+			for (var j = 0; j < rows.length; j++) {
+					if (rows[j].cells.length > statusIndex) {
+							rows[j].deleteCell(statusIndex); // remove the status <td>
+					}
+			}
 	}
 	
 	if (table.id.includes('forecastTable_')){
