@@ -370,7 +370,9 @@ function save_forecast_form() {
 
 /* ----------------------------  Create a new DB entry from a form  ---------------------------- */
 add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler ) {
-    $form_name = $record->get_form_settings('form_name');
+    global $wpdb;
+	
+	$form_name = $record->get_form_settings('form_name');
 	$raw_fields = $record->get('fields');
 	$fields = [];
 	$info = '';
@@ -378,12 +380,40 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 		$fields[ $id ] = $field['value'];
 	}
 
-	global $wpdb;
 	if ($form_name === 'Fix_list_form'){
 		$customerName = ucwords(trim($fields['fixlist_name'])) . ' ' . ucwords(trim($fields['fixlist_last_name']));
 		
+		$due_date = $fields['fixlist_due_date'];
+		$task_description = $fields['fixlist_description'];
+		$email_to = $fields['fixer_email_list'];
+		
+		//Check customer table
+		$customer = $wpdb->get_row($wpdb->prepare("SELECT * FROM wp_custom_customers WHERE postal_code = %s", $fields['fixlist_postal_code']));
+		
+		if(!$customer){
+			$inserted_customer = $wpdb->insert(
+				'wp_custom_customers',
+				[
+					'postal_code'  => $fields['fixlist_postal_code'],
+					'first_name'   => $fields['fixlist_name'],
+					'last_name'    => $fields['fixlist_last_name'],
+					'phone_number' => $fields['fixlist_phone_number']
+				],
+				['%s','%s','%s','%s']
+			);
+
+			if ($inserted_customer === false) {
+				wp_send_json_error(['message' => 'Error inserting customer']);
+			}
+			$customer_id = $wpdb->insert_id;
+		}else{
+			$customer_id = $customer->customer_id;
+		}
+	
+
 		$insert_success = $wpdb->insert('wp_custom_form_fixlist', array( 
 			'name' => $customerName, 
+			'customer_id' => $customer_id,
 			'phone_number' => $fields['fixlist_phone_number'], 
 			'address' => $fields['fixlist_address'],
 			'postal_code' => $fields['fixlist_postal_code'],
@@ -393,8 +423,40 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 			'entry_date' => date('Y-m-d'),
 			'priority' => $fields['fixlist_priority'],
 			'description' => $fields['fixlist_description'],
+			'fixer_email' => $fields['fixer_email_list'],
 			'status' => 0
 		));
+		
+		if ($insert_success === false) {
+			wp_send_json_error(['message' => 'Error creating srvice']);
+		} else {
+			$subject = "New task assigned";			
+			$body = '
+				<!DOCTYPE html>
+				<html lang="en">
+				<head>
+				<meta charset="UTF-8">
+				<style>
+					body { font-family: Arial, sans-serif; color: #333; line-height: 1.4; }
+					.order-info { margin-bottom: 15px; }
+					.order-info span { display: inline-block; min-width: 120px; font-weight: bold; }
+					img { max-width: 100%; height: auto; margin-top: 5px; margin-bottom: 5px; }
+				</style>
+				</head>
+				<body>
+					<h2>New Service Assigned</h2>
+					<div class="order-info">
+						<div><span>Due Date:</span> ' . $fields['fixlist_due_date']. '</div>
+						<div><span>Time Needed:</span> ' . $fields['fixlist_time_needed'] . '</div>
+						<div><span>Priority:</span> ' . $fields['fixlist_priority']. '</div>
+						<div><span>Description:</span> ' . $fields['fixlist_description'] . '</div>
+						<div><span>Customer Name:</span> ' . $customerName . '</div>
+						<div><span>Address:</span> ' . $fields['fixlist_address'] . '</div>
+						<div><span>Postal Code:</span> ' . $fields['fixlist_postal_code'] . '</div>
+						<div><span>Phone Number:</span> ' . $fields['fixlist_phone_number'] . '</div>
+					</div></body></html>';
+			send_email($email_to, $subject, $body, true);
+		}
 	}else if ($form_name === 'forecast_form'){  
 		$customFields = [];
 		$louverLength = $fields['forecast_form_louverLength'];
@@ -496,12 +558,18 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 			'task' => $task_description,
 			'email' => $email_to
 		));
+		
+		if ($insert_success !== false) {
+			$subject = "New task assigned";			
+			$message  = "Hi,<br> You have a new task: \"{$task_description}\" due on <strong>{$due_date}</strong><br><br>";
+			$headers = array('Content-Type: text/html; charset=UTF-8');
+			send_email($email_to, $subject, $message, false);
+		}
 	}else{
 		$output['success'] = false;
 		$output['debug'] = 'Form not found';
 		$record->set_status('failed'); 
 	}
-	
 	
 	if ($insert_success === false) {
 		$output['success'] = false;
@@ -509,21 +577,11 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 		$record->set_status('failed'); 
 	}else{
 		$output['success'] = $insert_success;
-		
 		if (method_exists($record, 'set_status')) {
 			$record->set_status('success');
 		} else {
 			error_log('Record object does not have set_status method.');
 		}
-		
-		if ($form_name === 'todo_form'){
-			$subject = "New task asssigned";			
-			$message  = "Hi,<br> You have a new task: \"{$task_description}\" due on <strong>{$due_date}</strong><br><br>";
-			$headers = array('Content-Type: text/html; charset=UTF-8');
-			
-			send_email($email_to, $subject, $message);
-		}
-			
 	}
 	
    $ajax_handler->add_response_data(true, $output);
@@ -787,33 +845,34 @@ function display_fixlist_data($status) {
 	$results = $wpdb->get_results(
         $wpdb->prepare("SELECT * FROM wp_custom_form_fixlist WHERE status = %d", $status)
     );
-	
+
 	if (empty($results)) {
         return '<p style="font-family: Roboto, sans-serif;text-align: center;"">No data found.</p>';
     }
 	
 	$dynamic_id = 'fixlistTable_' . $status;
     ob_start();
-	
+
 	//Table header
-    echo '<table id="' . esc_attr($dynamic_id) . '" class="table-custom display">';
+	echo '<div class="mrpergola-table-container">';
+    echo '<table id="' . esc_attr($dynamic_id) . '" class="mrpergola-table display">';
 
 	// Display the table header
 	echo '<thead><tr>';
 	
 	if ($dynamic_id === 'fixlistTable_0') {
-    	echo '<th style="width:2%">To Do</th>';
+    	echo '<th style="width:4%">To Do</th>';
 	} elseif ($dynamic_id === 'fixlistTable_1') {
     	echo '<th style="width:2%">Done</th>';
 	} else {
     	echo '<th style="width:2%">Status</th>';
 	}
 
-	echo '<th style="width:2%">Priority</th>';
+	echo '<th style="width:2%">Rank</th>';
 	echo '<th style="width:3%">Due Date</th>';
 	
 	if ($dynamic_id === 'fixlistTable_0') {
-    	echo '<th style="width:3%">Creation Date</th>';
+    	echo '<th style="width:3%">Input Date</th>';
 	} elseif ($dynamic_id === 'fixlistTable_1') {
     	echo '<th style="width:3%">Done Date</th>';
 	} else {
@@ -825,13 +884,14 @@ function display_fixlist_data($status) {
 	echo '<th style="width:9%">Phone#</th>';
 	echo '<th>Name</th>';
 	echo '<th>Address</th>';
-	echo '<th style="width:8%">Postal Code</th>';
-	echo '<th style="width:25%">Description</th>';
+	echo '<th class="mrpergola-col-small" style="font-size:12px">Postal Code</th>';
+	echo '<th >Description</th>';
 	echo '</tr></thead>';
 	echo '<tbody>';
 
 	// Loop through the data and display the rows
 	foreach ($results as $row) {
+
 		$due_date = $row->due_date;
 		$formatted_due_date = date('d/m', strtotime($due_date));
 		
@@ -849,7 +909,7 @@ function display_fixlist_data($status) {
 		} else {
 			$bgColor = '#ddffdd'; // Green
 		}
-
+		
 		echo '<tr data-id="' . esc_attr($row->id) . '">';
         //echo '<td contenteditable="true" style="text-align: center;"><input type="checkbox" ' . (($status == 1) ? 'checked' : '') . ' /></td>';
         echo '<td style="text-align: center; position: relative;" contenteditable="true">
@@ -865,14 +925,16 @@ function display_fixlist_data($status) {
         echo '<td contenteditable="true">' . esc_html($row->fixer) . '</td>';
         echo '<td contenteditable="true">' . esc_html($row->time_needed) . '</td>';
         echo '<td contenteditable="true">' . esc_html($row->phone_number) . '</td>';
-        echo '<td contenteditable="true">' . esc_html($row->name) . '</td>';
+    
+		echo '<td>' . (!empty($row->customer_id) ? '<a href="' . esc_url(site_url('/customer-profile/?id=' . urlencode($row->customer_id))) . '" target="_blank" style="color:black;">' . esc_html($row->name) . '</a>' 
+    		: esc_html($row->name)) . '</td>';
         echo '<td contenteditable="true">' . esc_html($row->address) . '</td>';
         echo '<td contenteditable="true">' . esc_html($row->postal_code) . '</td>';
         echo '<td contenteditable="true">' . esc_html($row->description) . '</td>';
         echo '</tr>';
 	}
 
-	echo '</tbody></table>';
+	echo '</tbody></table></div>';
 
     return ob_get_clean();
 }
@@ -909,30 +971,42 @@ function display_forecast_data($status) {
 		
     ob_start();
 
-    echo '<table id="' . esc_attr($dynamic_id) . '" class="table-custom display">';
-    echo '<thead><tr>';
+	
+	echo '<div class="mrpergola-table-container">';
+    echo '<table id="' . esc_attr($dynamic_id) . '" class="mrpergola-table display" style="padding:0px !important">';
+    echo '<thead>';
+	echo '<tr>
+			<th colspan="1"></th>
+			<th colspan="2">Date</th>
+			<th colspan="2"> </th>
+			<th colspan="2"> Frames</th>
+			<th colspan="2"> Subframes</th>
+			<th colspan="2"> Louvers</th>
+			<th colspan="2"> Posts</th>
+			<th colspan="5"></th>
+		</tr><tr>';
 
 		if ($dynamic_id === 'forecastTable_0') {
-			echo '<th style="width:2%">To Do</th>';
-			echo '<th style="width:3%">Submit Date</th>';
+			echo '<th style="width:4%">To Do</th>';
+			echo '<th style="width:3%">Submit</th>';
 		} elseif ($dynamic_id === 'forecastTable_1') {
 			echo '<th style="width:2%">Done</th>';
-			echo '<th style="width:3%">Done Date</th>';
+			echo '<th style="width:3%">Done</th>';
 		} else {
 			echo '<th style="width:2%">Status</th>';
 		}
 	
-		echo '<th style="width:5%">Due Date</th>
+		echo '<th style="width:5%">Due</th>
 			<th style="width:2%">Mdl</th>
 			<th style="width:2%">Type
 			<th style="width:2%">Wdt</th>
 			<th style="width:2%">Dpt</th>
-			<th style="width:5%">SF Lgt</th>
-			<th style="width:5%">SF Qty</th>
-			<th style="width:5%">Lvr Lgt</th>
-			<th style="width:5%">Lvr Qty</th>
-			<th style="width:6%">Posts Lgt</th>
-			<th style="width:6%">Posts Qty</th>
+			<th style="width:5%">Lgt</th>
+			<th style="width:5%">Qty</th>
+			<th style="width:5%">Lgt</th>
+			<th style="width:5%">Qty</th>
+			<th style="width:6%">Lgt</th>
+			<th style="width:6%">Qty</th>
 			<th style="width:5%">Slds</th>
 			<th >Name</th>
 			<th style="width:7%">Postal Code</th>
@@ -986,7 +1060,7 @@ function display_forecast_data($status) {
 		
 		echo '</tr>';
     }
-    echo '</tbody></table>';
+    echo '</tbody></table></div>';
 	
     return ob_get_clean();
 }
@@ -1338,7 +1412,8 @@ function display_todo_data($status) {
 	$dynamic_id = 'todoTable_' . $status;
     ob_start();
 
-    echo '<table id="' . esc_attr($dynamic_id) . '" class="table-custom display">';
+	echo '<div class="mrpergola-table-container">';
+    echo '<table id="' . esc_attr($dynamic_id) . '" class="mrpergola-table display">';
     echo '<thead><tr>';
 	
 	if ($dynamic_id === 'todoTable_0') {
@@ -1391,7 +1466,7 @@ function display_todo_data($status) {
         echo '<td contenteditable="true">' . esc_html($row->task) . '</td>';
         echo '</tr>';
     }
-    echo '</tbody></table>';
+    echo '</tbody></table></div>';
     return ob_get_clean();
 }
 
