@@ -1940,10 +1940,10 @@ function update_status_and_email(){
         wp_send_json_error('Payload is empty or invalid JSON.');
     } 
 
-
     $id          		= isset($payload['forecastId']) ? intval($payload['forecastId']) : 0;
     $order_status		= isset($payload['orderStatus']) ? sanitize_text_field($payload['orderStatus']) : '';
 	$email 				= isset($payload['email']) ? sanitize_text_field($payload['email']) : '';
+	$name 				= isset($payload['customerName']) ? sanitize_text_field($payload['customerName']) : '';
   
     if (empty($id)) {
         wp_send_json_error('Forecast ID missing.');
@@ -1972,20 +1972,98 @@ function update_status_and_email(){
         wp_send_json_success($messages);
     } else {
         $messages[] = "Update successful. Rows affected: $result";
-		$subject = 'Status Update';
-		$emailContent = 'New status for your order.';
-		$sentStatus = wp_mail($email, $subject, $emailContent);
-		if($sentStatus){
-			 wp_send_json_success($messages);
-		}else{
-			wp_send_json_error(['message' => 'Insert failed']);
+		$subject = 'Notification';
+		$body = create_order_email_body($name, $order_status);
+		
+		add_filter('wp_mail_content_type', function() { return 'text/html'; });
+		$sentStatus = wp_mail($email, $subject, $body);
+		remove_filter('wp_mail_content_type', function() { return 'text/html'; });
+
+		if ($sentStatus) {
+			wp_send_json_success(['message' => $sentStatus]);
+		} else {
+			wp_send_json_error(['message' => 'Error sending email.']);
 		}
     }
 }
 
-
 add_action('wp_ajax_update_status_and_email', 'update_status_and_email');
 add_action('wp_ajax_nopriv_update_status_and_email', 'update_status_and_email');
+
+function create_order_email_body($name, $status_value) {
+    // Couleurs
+    $colors = [
+        1 => '#f6cc32',
+        2 => '#f6ee32',
+        3 => '#d0f44a',
+        4 => '#aff968',
+        5 => '#89f69b',
+        6 => '#a5f2be',
+    ];
+
+    // Labels
+    $status_labels_en = [
+        'measurement'        => 'Measurements',
+        'design_eng' => 'Design & Engineering',
+        'prod_planning'      => 'Production and Planning',
+        'production'         => 'Production',
+        'scheduling'         => 'Scheduling',
+        'scheduling_install' => 'Scheduling for Install',
+    ];
+    $status_labels_fr = [
+        'measurement'        => 'Mesures',
+        'design_eng' => 'Conception & Ingénierie',
+        'prod_planning'      => 'Production et planification',
+        'production'         => 'Production',
+        'scheduling'         => 'Planification',
+        'scheduling_install' => 'Planification pour l\'installation',
+    ];
+
+    $segments_en = array_values($status_labels_en);
+    $segments_fr = array_values($status_labels_fr);
+    $status_keys = array_keys($status_labels_en);
+
+    $status_index = array_search($status_value, $status_keys, true);
+    $status = ($status_index !== false) ? $status_index + 1 : 1;
+
+    $build_progress = function(array $segments, int $status, array $colors) {
+        $col_count = count($segments);
+        $html = '<table cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:720px;border-collapse:separate;border-spacing:0;table-layout:fixed;margin-bottom:20px;"><tr>';
+        foreach ($segments as $i => $label) {
+            $num = $i + 1;
+            $active = ($num <= $status);
+            $bg = $active ? ($colors[$num] ?? '#e0e0e0') : '#e0e0e0';
+
+            // coins arrondis
+            $radius = '';
+            if ($i === 0) {
+                $radius = 'border-top-left-radius:12px;border-bottom-left-radius:12px;';
+            } elseif ($i === $col_count - 1) {
+                $radius = 'border-top-right-radius:12px;border-bottom-right-radius:12px;';
+            }
+
+            $html .= '<td align="center" valign="middle" style="padding:6px 8px;font-size:12px;font-weight:600;color:#000;background:' . $bg . ';' . $radius . 'word-wrap:break-word;overflow-wrap:break-word;">'
+                   . htmlspecialchars($label)
+                   . '</td>';
+        }
+        $html .= '</tr></table>';
+        return $html;
+    };
+
+    $progress_fr = $build_progress($segments_fr, $status, $colors);
+    $progress_en = $build_progress($segments_en, $status, $colors);
+
+    $body = '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#1c1c1b;background:#fff;padding:20px;">'
+        . '<p style="color:#999;">[English version below]</p>'
+        . '<p>Bonjour ' . htmlspecialchars($name) . ',<br>Le statut de votre commande a été mis à jour :</p>'
+        . $progress_fr
+        . '<hr style="border:none;border-top:1px solid #ccc;margin:20px 0;">'
+        . '<p>Hello ' . htmlspecialchars($name) . ',<br>Your order\'s status was updated:</p>'
+        . $progress_en
+        . '</body></html>';
+
+    return $body;
+}
 
 
 /* ---------------------------- Show Customer Notes ---------------------------- */
@@ -2138,6 +2216,11 @@ function send_team_notification_email() {
 
     $accessories = json_decode($order['accessories']);
     $accessoriesList = is_array($accessories) ? implode(', ', $accessories) : '';
+	$dueDate = !empty($order['due_date']) ? new DateTime($order['due_date']) : null;
+	$formattedDueDate = $dueDate ? $dueDate->format('Y-m-d') : null;
+	$entryDate = !empty($order['entry_date']) ? new DateTime($order['entry_date']) : null;
+	$formattedEntryDate = $dueDate ? $dueDate->format('Y-m-d') : null;
+	
 
     // Build HTML email
     $body = '
@@ -2164,8 +2247,8 @@ function send_team_notification_email() {
             <div><span>Subframe:</span> ' . $order['subframe_size'] . ' x ' . $order['subframe_qty'] . '</div>
             <div><span>Post:</span> ' . $order['post_size'] . ' x ' . $order['post_qty'] . '</div>
             <div><span>Color:</span> ' . $order['color'] . '</div>
-            <div><span>Due Date:</span> ' . $order['due_date'] . '</div>
-            <div><span>Entry Date:</span> ' . $order['entry_date'] . '</div>
+            <div><span>Due Date:</span> ' . $formattedDueDate . '</div>
+            <div><span>Entry Date:</span> ' . $formattedEntryDate . '</div>
             <div><span>Accessories:</span> ' . $accessoriesList . '</div>
             <div><span>Team Assigned:</span> ' . $order['team_assigned'] . '</div>
             <div><span>Info:</span> ' . $order['info'] . '</div>
@@ -2213,7 +2296,7 @@ function send_email($to, $subject, $message, $addToCalendar){
 	}
 		
 	$headers = array('Content-Type: text/html; charset=UTF-8');
-	//wp_mail($to, $subject, $message, $headers);
+
 	$sent = wp_mail($to, $subject, $message, $headers);
 	if ($sent) {
 		return 'Email successfully sent';
