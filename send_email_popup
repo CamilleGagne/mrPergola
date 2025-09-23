@@ -1,0 +1,106 @@
+<script>
+var addEmailBtn, emailContainer, msgContainer, emailAddress, sendEmailBtn;	
+jQuery(document).ready(function () {
+    jQuery(document).on('elementor/popup/show', function (event, popup) {
+			if (popup !== 4625) {return;}
+			
+        addEmailBtn = document.getElementById('add-email-btn');
+        emailContainer = document.getElementById('email-container');
+				msgContainer = document.getElementById('email-content');
+				emailAddress = document.getElementById('email-1');
+				sendEmailBtn = document.getElementById('email_notification_send_btn');
+			
+			
+			if (sendEmailBtn){
+				sendEmailBtn.disabled = true;	
+			}		
+			
+			if (msgContainer){
+					msgContainer.value='This is a test of a text';
+			}
+			
+			emailAddress.addEventListener('change', function(){
+				if (emailAddress.value){
+					sendEmailBtn.disabled = false;
+				}
+			});
+			
+        if (addEmailBtn) {	
+            addEmailBtn.addEventListener('click', function(e){
+                e.preventDefault();
+                e.stopPropagation();
+
+                var newDiv = document.createElement('div');
+                newDiv.className = 'mrpergola-form-group mb-8';
+                newDiv.style.display = 'flex';
+                newDiv.style.alignItems = 'center';
+                newDiv.style.gap = '8px';
+
+                var newLabel = document.createElement('label');
+                var timestamp = new Date().getTime();
+                newLabel.setAttribute('for', 'email-' + timestamp);
+                newLabel.style.minWidth = '50px';
+
+                var newInput = document.createElement('input');
+                newInput.type = 'email';
+                newInput.id = 'email-' + timestamp;
+                newInput.name = 'team_selection[]';
+                newInput.style.flex = '1';
+								newInput.style.width = '80%';
+
+                newDiv.appendChild(newLabel);
+                newDiv.appendChild(newInput);
+
+                emailContainer.appendChild(newDiv);
+            });
+        }
+			if (sendEmailBtn) {	
+				sendEmailBtn.addEventListener('click', function(e){
+						showLoading();
+						e.preventDefault();
+						e.stopPropagation();
+
+						var ajaxDataDiv = document.getElementById('ajax-data-block-send-email');
+						var ajaxNonce = ajaxDataDiv.getAttribute('data-nonce');
+
+						var msgContainer = document.getElementById('email-content');
+						var emailInputs = document.querySelectorAll('#email-container input[type="email"]');
+						var emailValues = Array.prototype.map.call(emailInputs, function(input){
+								return input.value.trim();
+						}).filter(function(v){ return v; });
+
+						var emailContent = msgContainer ? msgContainer.value : '';
+
+						var formData = new FormData();
+						formData.append('_wpnonce', ajaxNonce);
+						formData.append('action','send_popup_email');
+						for (var i = 0; i < emailValues.length; i++) {
+								formData.append('email[]', emailValues[i]);
+						}
+						formData.append('msg', emailContent);
+
+						fetch('/wp-admin/admin-ajax.php', {
+								method: 'POST',
+								body: formData
+						})
+						.then(function(response) {
+								return response.json();
+						})
+						.then(function(data) {
+								hideLoading();
+								if (data && data.success) {
+									location.reload();
+								} else {
+									alert('ERROR: ' + JSON.stringify(data.data));
+								}
+						})
+						.catch(function(error) {
+							 hideLoading();
+								alert('ERROR: ' + error);
+								console.error('ERROR:', error);
+						});
+				});
+		}
+    });
+});
+</script>
