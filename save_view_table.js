@@ -19,32 +19,26 @@ function makeDateFormat(input){
 }	
 	
 function checkForecastInputs(data) {	
-	if (!['Free', 'Wall', 'None'].includes(data.values[4])) {
+	
+	if (!['Free', 'Wall', 'None'].includes(data.values.model_type)) {
 		return { error: 'Type value must be Free, Wall or None' };
 	}
 	
-	if (!['3S', '4S', 'Modern', 'SF'].includes(data.values[3])) {
+	if (!['3S', '4S', 'Modern', 'SF'].includes(data.values.model)) {
 		return { error: 'Mdl value must be 3S, 4S, Modern, SF'};
 	}
 	
-	data.values[1] = makeDateFormat(data.values[1]);
-	data.values[2] = makeDateFormat(data.values[2]);
+	data.values.entry_date = makeDateFormat(data.values.entry_date);
+	data.values.due_date = makeDateFormat(data.values.due_date);
 	
-	if (data.values[1].error){
-		return {error: data.values[1].error};
+	if (data.values.entry_date.error){
+		return {error: data.values.entry_date.error};
 	}
 	
-	if (data.values[2].error){
-		return {error: data.values[2].error};
+	if (data.values.due_date.error){
+		return {error: data.values.due_date.error};
 	}
 	
-	var canadianPattern = /^[A-Z]\d[A-Z][ ]?\d[A-Z]\d$/;
-
-	if (!canadianPattern.test(data.values[15])){
-		alert('Postal Code does not respect Canadian format. Please double check your input.');
-	}
-	
-
 	return data;
 }
 	
@@ -76,6 +70,51 @@ function checkTodoInputs(data){
 	return data;	
 }		
 	
+	
+
+function saveForecastData(tableIds, cbAction, btnId, ajaxNonce){
+		var changedData = [];
+		var hasError = false;
+
+    document.querySelectorAll(tableIds).forEach(function(row) {
+      var isChecked = row.querySelector('.status input[type="checkbox"]').checked ? 1 : 0; 
+			var rowData = {
+					id: row.dataset.id,
+					values: {
+							status: isChecked,
+							entry_date: row.querySelector('.entry_date').innerText,
+							due_date: row.querySelector('.due_date').innerText,
+							model: row.querySelector('.model').innerText,
+							model_type: row.querySelector('.model_type').innerText,
+							width: row.querySelector('.width').innerText,
+							depth: row.querySelector('.depth').innerText,
+							subframe_size: row.querySelector('.subframe_size').innerText,
+							subframe_qty: row.querySelector('.subframe_qty').innerText,
+							louver_size: row.querySelector('.louver_size').innerText,
+							louver_qty: row.querySelector('.louver_qty').innerText,
+							post_size: row.querySelector('.post_size').innerText,
+							post_qty: row.querySelector('.post_qty').innerText,
+							soldiers: row.querySelector('.soldiers').innerText,
+							color: row.querySelector('.color').innerText,
+							accessories: row.querySelector('.accessories').innerText
+					}
+			};
+
+			rowData = checkForecastInputs(rowData);
+			if (rowData.error){
+				hasError = true;
+				alert(rowData.error);
+			}else if (rowData.values[0] === 1) {
+				rowData.values[1] = new Date().toISOString().slice(0, 10);
+			} 
+        changedData.push(rowData);
+    });
+	
+		if (changedData.length > 0 && !hasError) {
+			sendFetchRequest(cbAction, changedData, ajaxNonce);
+	 }
+}	
+	
 function saveData(tableIds, cbAction, btnId, ajaxNonce) {
 		var changedData = [];
 		var hasError = false;
@@ -104,14 +143,6 @@ function saveData(tableIds, cbAction, btnId, ajaxNonce) {
 				}else if (rowData.values[0] === 1) {
 					rowData.values[3] = new Date().toISOString().slice(0, 10);
 				} 
-			}else if(btnId === 'forecast-save-btn'){
-				rowData = checkForecastInputs(rowData);
-				if (rowData.error){
-					hasError = true;
-					alert(rowData.error);
-				}else if (rowData.values[0] === 1) {
-					rowData.values[1] = new Date().toISOString().slice(0, 10);
-				} 
 			}else if(btnId === 'todo-save-btn'){
 				rowData = checkTodoInputs(rowData);
 				if (rowData.error){
@@ -121,59 +152,67 @@ function saveData(tableIds, cbAction, btnId, ajaxNonce) {
 					rowData.values[3] = new Date().toISOString().slice(0, 10);
 				} 
 			}
-		
         changedData.push(rowData);
     });
 	
 		if (changedData.length > 0 && !hasError) {
+			sendFetchRequest(cbAction, changedData, ajaxNonce);
+	 }else if (!hasError) {
+		alert('No changes detected in the table');
+	}
+}
+	
+	
+function sendFetchRequest(cbAction, changedData, ajaxNonce) {
+    // Send the AJAX request
+    fetch('/wp-admin/admin-ajax.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            action: cbAction,
+            data: JSON.stringify(changedData),
+            _wpnonce: ajaxNonce
+        })
+    })
+    .then(function(response) {
+        return response.json(); // Parse response as JSON
+    })
+    .then(function(data) {
+        if (data && data.success) {
+            // Store index of active tab
+            var activeTab = document.querySelector('.e-n-tab-title[aria-selected="true"]');
+            if (activeTab) {
+                var index = activeTab.getAttribute('data-tab-index');
+                if (index !== null) {
+                    localStorage.setItem('activeEnTabIndex', index);
+                }
+            }
 
-			 // Send the AJAX request
-			 fetch('/wp-admin/admin-ajax.php', {
-				 method: 'POST',
-				 headers: {
-					 'Content-Type': 'application/x-www-form-urlencoded'
-				 },
-				 body: new URLSearchParams({
-					 action: cbAction,
-					 data: JSON.stringify(changedData),
-					 _wpnonce: ajaxNonce
-				 })
-			 }).then(function(response) {
-				 return response.json();
-				 // Parse response as JSON
-			 }).then(function(data) {
-				 if (data && data.success) {
-					 //Store index of active tab
-					var activeTab = document.querySelector('.e-n-tab-title[aria-selected="true"]');
-					if (activeTab) {
-						var index = activeTab.getAttribute('data-tab-index');
-					if (index !== null) {
-							localStorage.setItem('activeEnTabIndex', index);
-						}
-					}
-					 
-					 // Reload page on success
-					 location.reload();
-					 alert('Table successfully saved!');
+            // Reload page on success
+            alert('Table successfully saved!');
+            location.reload();
 
-					 document.querySelectorAll('#fixlistTable_0 tbody tr.dirty, #fixlistTable_1 tbody tr.dirty, #forecastTable_0 tbody tr.dirty, #forecastTable_1 tbody tr.dirty, #todoTable_0 tbody tr.dirty, #todoTable_1 tbody tr.dirty').forEach(function(row) {
-						 row.classList.remove('dirty');
-					 });
+            // Remove dirty class from rows
+            document.querySelectorAll(
+                '#fixlistTable_0 tbody tr.dirty, #fixlistTable_1 tbody tr.dirty, ' +
+                '#forecastTable_0 tbody tr.dirty, #forecastTable_1 tbody tr.dirty, ' +
+                '#todoTable_0 tbody tr.dirty, #todoTable_1 tbody tr.dirty'
+            ).forEach(function(row) {
+                row.classList.remove('dirty');
+            });
 
-				 } else {
-					 console.log('error while saving');
-					 alert('Error while saving your table: ' + data.data);
-					 console.log('Error saving changes: ' + data.data);
-				 }
-			 }).catch(function(error) {
-				 console.log('fetch error');
-				 alert('Fetch error:', error);
-				 console.error('Fetch error:', error);
-			 });
-		 } else if (!hasError) {
-			 alert('No changes detected in the table');
-		 }
-	 }
+        } else {
+            console.error('Error saving changes:', data.data);
+            alert('Error while saving your table: ' + data.data);
+        }
+    })
+    .catch(function(error) {
+        console.error('Fetch error:', error);
+        alert('Fetch error: ' + error);
+    });
+}
 	
 document.addEventListener('DOMContentLoaded', function() {
 	var fixlistSaveBtn = document.getElementById('fixlist-save-btn');
@@ -201,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			var btnId = forecastSaveBtn.getAttribute('id');
 			var tableIds = '#forecastTable_0 tbody tr.dirty, #forecastTable_1 tbody tr.dirty';
 			var cbAction = 'save_forecast_table'; 
-			saveData(tableIds, cbAction, btnId, ajaxNonce);
+			saveForecastData(tableIds, cbAction, btnId, ajaxNonce);
 		});
 	}
 	
