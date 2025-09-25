@@ -28,6 +28,13 @@ function hello_elementor_child_enqueue_styles() {
 }
 add_action( 'wp_enqueue_scripts', 'hello_elementor_child_enqueue_styles' );
 
+/*Calendar*/
+function enqueue_fullcalendar_assets() {
+    wp_enqueue_style( 'fullcalendar-css', 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css' );
+    wp_enqueue_script( 'fullcalendar-js', 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js', [], null, true );
+}
+add_action( 'wp_enqueue_scripts', 'enqueue_fullcalendar_assets' );
+
 /*This creates the tables used in fixlist, forecast and todo.*/
 function enqueue_datatables_assets() {
     wp_enqueue_script('jquery');
@@ -41,7 +48,7 @@ function enqueue_datatables_assets() {
             $('#todoTable_0, #todoTable_1, #forecastTable_0, #forecastTable_1, #fixlistTable_0, #fixlistTable_1, #customersTable_list, #customerTable').DataTable({
                 autoWidth : false, 
 				ordering: true,          // Enable sorting
-                order: [[1, 'asc']],    
+                order: [[2, 'asc']],    
                 searching: true,         // Enable searching
                 paging: true,    // Enable pagination
 				pageLength: 50
@@ -347,6 +354,7 @@ function save_forecast_form() {
 			'custom_fields' => json_encode($customFields),
 			'status'        => $status,
 			'order_status'  => $orderStatus,
+			'accessories'   => json_encode($accessories),
 			'image_url'     => json_encode($imageUrls)
 		],
 		['%d','%s','%s','%s','%s','%s','%s','%s','%s','%s',
@@ -626,40 +634,54 @@ function formatFeetInches($input) {
 /* ========================================================================================================================================== */
 /*                                                         SAVE TABLE                                                                         */
 /* ========================================================================================================================================== */
-function save_table_cb() {
-   if ( ! isset($_POST['_wpnonce']) || ! wp_verify_nonce($_POST['_wpnonce'], 'save_table_nonce') ) {
-    	wp_send_json_error('Security check failed. Nonce invalid or missing.');
-	}
-	
-	//Wordpress db object
-	global $wpdb;
-	
-	$action = sanitize_text_field($_POST['action']);
-	if ($action === 'save_fixlist_table') {
-		$table = 'wp_custom_form_fixlist';
-		$columns = ['status','priority','due_date','entry_date','fixer','time_needed','phone_number','name','address','postal_code','description'];
-		$format = array('%d','%d','%s', '%s','%s','%s','%s','%s','%s','%s','%s');
-	}else if ($action === 'save_forecast_table'){
-		$table = 'wp_custom_form_forecast';
-		$columns = ['status','entry_date','due_date','model','type','width','depth','subframe_size','subframe_qty','louver_size', 'louver_qty','post_size','post_qty','soldiers','name','postal_code','info','custom_fields'];
-		$format = array('%d','%s', '%s','%s','%s', '%s', '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s');
-	}else if ($action === 'save_todo_table'){
-		$table = 'wp_custom_form_todolist';
-		$columns = ['status', 'priority', 'assignee', 'date', 'email', 'task'];
-		$format = array('%d','%d','%s','%s', '%s', '%s');
-	}
-    
-	 // Get and decode the posted data
-    if (empty($_POST['data'])) {
-        wp_send_json_error('No data received.');
-    }
-
-    $data = json_decode(stripslashes($_POST['data']), true);
-    if (empty($data) || !is_array($data)) {
-        wp_send_json_error('Invalid data format.');
-    }
-
+function execute_save_forecast($data, $table, $columns, $format){
+    global $wpdb;
     $errors = [];
+
+    foreach ($data as $row) {
+        $id = intval($row['id']);
+        $values = $row['values']; 
+
+        $update_data = [];
+        foreach ($columns as $col_name) {
+            if (isset($values[$col_name])) {
+                $val = $values[$col_name];
+
+                // Si c'est un tableau → encode en JSON
+                if (is_array($val)) {
+                    $val = wp_json_encode($val);
+                }
+
+                $update_data[$col_name] = sanitize_text_field($val);
+            }
+        }
+
+        if (!empty($update_data) && $id > 0) {
+            $result = $wpdb->update(
+                $table,
+                $update_data,
+                ['id' => $id],
+                $format,
+                ['%d']
+            );
+
+            if ($result === false){
+                $errors[] = "Database error for ID $id: " . $wpdb->last_error;
+            }
+        } else {
+            $errors[] = "Error updating table for ID $id: Invalid data or ID.";
+        }
+    }
+
+    $success = empty($errors);
+    return [$errors, $success];
+}
+
+
+function execute_save($data, $table, $columns, $format){
+	global $wpdb; 
+	 $errors = [];
+	 $success = true;
 	
     foreach ($data as $row) {
         $id = intval($row['id']);
@@ -685,19 +707,53 @@ function save_table_cb() {
 		
 			if ($result === false){
 				$errors[] = "Database error for ID $id: " . $wpdb->last_error;
-			} else {
-				// Add debugging output
-				$errors[] = "Query executed successfully. Rows affected: " . $result;
 			}
         }else{
 			$errors[] = "Error updating table for ID $id: Invalid data or ID.";
 		}
     }
+	$success = empty($errors);
+	return [$errors, $success];
+}
 
-    if (!empty($error)) {
-		wp_send_json_error($error);
-	} else {
+function save_table_cb() {
+	global $wpdb;
+	
+	if ( ! isset($_POST['_wpnonce']) || ! wp_verify_nonce($_POST['_wpnonce'], 'save_table_nonce') ) {
+    	wp_send_json_error('Security check failed. Nonce invalid or missing.');
+	}
+	
+	 if (empty($_POST['data'])) {
+        wp_send_json_error('No data received.');
+    }
+
+    $data = json_decode(stripslashes($_POST['data']), true);
+    if (empty($data) || !is_array($data)) {
+        wp_send_json_error('Invalid data format.');
+    }
+	
+	$action = sanitize_text_field($_POST['action']);
+	if ($action === 'save_fixlist_table') {
+		$table = 'wp_custom_form_fixlist';
+		$columns = ['status','priority','due_date','entry_date','fixer','time_needed','phone_number','name','address','postal_code','description'];
+		$format = array('%d','%d','%s', '%s','%s','%s','%s','%s','%s','%s','%s');
+		[$errors, $success] = execute_save($data, $table, $columns, $format);
+	}else if ($action === 'save_forecast_table'){
+		$table = 'wp_forecast_table';//'wp_custom_form_forecast';
+		$columns = ['status','entry_date','due_date','model','model_type','width','depth','subframe_size','subframe_qty','louver_size', 'louver_qty','post_size','post_qty','soldiers','color','accessories'];
+		$format = array('%d','%s', '%s','%s','%s', '%s', '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s');
+		[$errors, $success] = execute_save_forecast($data, $table, $columns, $format);
+	}else if ($action === 'save_todo_table'){
+		$table = 'wp_custom_form_todolist';
+		$columns = ['status', 'priority', 'assignee', 'date', 'email', 'task'];
+		$format = array('%d','%d','%s','%s', '%s', '%s');
+		[$errors, $success] = execute_save($data, $table, $columns, $format);
+	}
+    
+	if ($success){
 		wp_send_json_success('Changes saved.');
+	}else{
+		wp_send_json_error($errors);
 	}
 }
 
@@ -959,9 +1015,22 @@ function display_forecast_data($status) {
 	global $customValuesToCheck;
 	$customFlags = [];
 	
-	$results = $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM wp_custom_form_forecast WHERE status = %d", $status)
+	//$results = $wpdb->get_results(
+        //$wpdb->prepare("SELECT * FROM wp_custom_form_forecast WHERE status = %d", $status)
+      //  $wpdb->prepare("SELECT * FROM wp_forecast_table WHERE status = %d", $status)
+    //);
+	
+	 $query = $wpdb->prepare(
+        "SELECT c.*, f.* 
+         FROM wp_forecast_table f
+         INNER JOIN wp_custom_customers c
+         ON c.id = f.customer_id
+         WHERE f.status = %d",
+         $status
     );
+
+	$results = $wpdb->get_results($query);
+	
 	
 	if (empty($results)) {
         return '<p style="font-family: Roboto, sans-serif;text-align: center;"">No data found.</p>';
@@ -970,48 +1039,49 @@ function display_forecast_data($status) {
 	$dynamic_id = 'forecastTable_' . sanitize_title($status);
 		
     ob_start();
-
-	
 	echo '<div class="mrpergola-table-container">';
     echo '<table id="' . esc_attr($dynamic_id) . '" class="mrpergola-table display" style="padding:0px !important">';
     echo '<thead>';
 	echo '<tr>
-			<th colspan="1"></th>
+			<th colspan="2"></th>
 			<th colspan="2">Date</th>
 			<th colspan="2"> </th>
 			<th colspan="2"> Frames</th>
 			<th colspan="2"> Subframes</th>
 			<th colspan="2"> Louvers</th>
 			<th colspan="2"> Posts</th>
-			<th colspan="5"></th>
+			<th colspan="6"></th>
 		</tr><tr>';
 
 		if ($dynamic_id === 'forecastTable_0') {
-			echo '<th style="width:4%">To Do</th>';
+			echo '<th style="width:4%;">To Do</th>';
+			echo '<th>Name</th>';
 			echo '<th style="width:3%">Submit</th>';
 		} elseif ($dynamic_id === 'forecastTable_1') {
 			echo '<th style="width:2%">Done</th>';
+			echo '<th>Name</th>';
 			echo '<th style="width:3%">Done</th>';
 		} else {
 			echo '<th style="width:2%">Status</th>';
+			echo '<th >Name</th>';
 		}
 	
-		echo '<th style="width:5%">Due</th>
+		echo '<th class="mrpergola-col-xsmall">Due</th>
 			<th style="width:2%">Mdl</th>
 			<th style="width:2%">Type
 			<th style="width:2%">Wdt</th>
 			<th style="width:2%">Dpt</th>
-			<th style="width:5%">Lgt</th>
-			<th style="width:5%">Qty</th>
-			<th style="width:5%">Lgt</th>
-			<th style="width:5%">Qty</th>
-			<th style="width:6%">Lgt</th>
-			<th style="width:6%">Qty</th>
-			<th style="width:5%">Slds</th>
-			<th >Name</th>
+			<th style="width:3%">Lgt</th>
+			<th style="width:2%">Qty</th>
+			<th style="width:3%">Lgt</th>
+			<th style="width:2%">Qty</th>
+			<th style="width:3%">Lgt</th>
+			<th style="width:2%">Qty</th>
+			<th style="width:3%">Slds</th>
+			<th >Color</th>
+			<th >Extras</th>
 			<th style="width:7%">Postal Code</th>
 			<th style="display:none" class="hidden-data"></th>
-			<th>Info</th>
 			<th>Doc</th>
 			</tr></thead>';
     echo '<tbody>';
@@ -1029,35 +1099,42 @@ function display_forecast_data($status) {
 		
 		$entry_date = $row->entry_date;
 		$formatted_entry_date = date('d/m', strtotime($entry_date));
-		
 		$due_date = $row->due_date;
 		$formatted_due_date = date('d/m', strtotime($due_date));
+		$profile_url = site_url('/customer-profile/?id=' . urlencode($row->customer_id));
+		$full_name = $row->first_name . ' ' . $row->last_name;
+		$accessories = json_decode($row->accessories, true);
+		$color = $row->color;
+		// Si c'est NULL, 'NULL' en string, ou vide, on affiche rien
+		if (is_null($color) || $color === 'NULL' || $color === '') {
+			$color = '';
+		}
 		
 		echo '<tr data-id="' . esc_attr($row->id) . '">';
-		echo '<td contenteditable="true" style="text-align: center;">
-			<span contenteditable="false">
-				<input type="checkbox" ' . (($status == 1) ? 'checked' : '') . ' />
-			</span>
-		</td>';
-		echo '<td >' . esc_html($formatted_entry_date) . '</td>';
-		echo '<td contenteditable="true">' . esc_html($formatted_due_date) . '</td>';
-        echo '<td contenteditable="true">' . esc_html($row->model) . '</td>';
-		echo '<td contenteditable="true">' . esc_html($row->type) . '</td>';
-		echo '<td contenteditable="true" style="' . ($customFlags['width'] ? $customStyle : '') . '">' . esc_html($row->width) . '</td>';
-		echo '<td contenteditable="true" style="' . ($customFlags['depth'] ? $customStyle : '') . '">'. esc_html($row->depth) . '</td>';
-		echo '<td contenteditable="true" style="' . ($customFlags['subSize'] ? $customStyle : '') . '">'. esc_html($row->subframe_size) . '</td>';
-		echo '<td contenteditable="true" style="' . ($customFlags['subQty'] ? $customStyle : '') . '">'. esc_html($row->subframe_qty) . '</td>';
-		echo '<td contenteditable="true">' . esc_html($row->louver_size) . '</td>';
-		echo '<td contenteditable="true">' . esc_html($row->louver_qty) . '</td>';
-		echo '<td contenteditable="true" style="' . ($customFlags['postSize'] ? $customStyle : '') . '">'. esc_html($row->post_size) . '</td>';
-		echo '<td contenteditable="true" style="' . ($customFlags['postQty'] ? $customStyle : '') . '">'. esc_html($row->post_qty) . '</td>';
-		echo '<td contenteditable="true">' . esc_html($row->soldiers) . '</td>';
-        echo '<td contenteditable="true">' . esc_html($row->name) . '</td>';
-        echo '<td contenteditable="true">' . esc_html($row->postal_code) . '</td>';
-        echo '<td contenteditable="true">' . esc_html($row->info) . '</td>';
-		echo '<td style="display:none" class="hidden-data">' . esc_html($row->custom_fields) . '</td>';    
-		echo '<td style="text-align:center;"> <span class="view-doc-button" data-rowid="' . esc_attr($row->id) . '" style="cursor:pointer; font-size:22px;" title="View Document">📁</span></td>';
-		
+		echo '<td class="status" contenteditable="true" style="text-align: center;">
+				<span contenteditable="false">
+					<input type="checkbox" ' . (($status == 1) ? 'checked' : '') . ' />
+				</span>
+			  </td>';
+		echo '<td class="full_name"><a href="' . esc_url($profile_url) .  '" target="_blank" style="color:black;">' . esc_html($full_name) . '</a></td>';
+		echo '<td class="entry_date">' . esc_html($formatted_entry_date) . '</td>';
+		echo '<td class="due_date" contenteditable="true">' . esc_html($formatted_due_date) . '</td>';
+		echo '<td class="model" contenteditable="true">' . esc_html($row->model) . '</td>';
+		echo '<td class="model_type" contenteditable="true">' . esc_html($row->model_type) . '</td>';
+		echo '<td class="width" contenteditable="true" style="' . ($customFlags['width'] ? $customStyle : '') . '">' . esc_html($row->width) . '</td>';
+		echo '<td class="depth" contenteditable="true" style="' . ($customFlags['depth'] ? $customStyle : '') . '">' . esc_html($row->depth) . '</td>';
+		echo '<td class="subframe_size" contenteditable="true" style="' . ($customFlags['subSize'] ? $customStyle : '') . '">' . esc_html($row->subframe_size) . '</td>';
+		echo '<td class="subframe_qty" contenteditable="true" style="' . ($customFlags['subQty'] ? $customStyle : '') . '">' . esc_html($row->subframe_qty) . '</td>';
+		echo '<td class="louver_size" contenteditable="true">' . esc_html($row->louver_size) . '</td>';
+		echo '<td class="louver_qty" contenteditable="true">' . esc_html($row->louver_qty) . '</td>';
+		echo '<td class="post_size" contenteditable="true" style="' . ($customFlags['postSize'] ? $customStyle : '') . '">' . esc_html($row->post_size) . '</td>';
+		echo '<td class="post_qty" contenteditable="true" style="' . ($customFlags['postQty'] ? $customStyle : '') . '">' . esc_html($row->post_qty) . '</td>';
+		echo '<td class="soldiers" contenteditable="true">' . esc_html($row->soldiers) . '</td>';
+		echo '<td class="color" contenteditable="true">' . esc_html($color) . '</td>';
+		echo '<td class="accessories" contenteditable="true">' . esc_html(implode(', ', (array) $accessories)) . '</td>';
+		echo '<td class="postal_code" contenteditable="true">' . esc_html($row->postal_code) . '</td>';
+		echo '<td class="custom_fields hidden-data" style="display:none">' . esc_html($row->custom_fields) . '</td>';    
+		echo '<td style="text-align:center;"><span class="view-doc-button" data-rowid="' . esc_attr($row->id) . '" style="cursor:pointer; font-size:22px;" title="View Document">📁</span></td>';
 		echo '</tr>';
     }
     echo '</tbody></table></div>';
