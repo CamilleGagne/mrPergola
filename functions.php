@@ -1105,7 +1105,7 @@ function display_forecast_data($status) {
 		$full_name = $row->first_name . ' ' . $row->last_name;
 		$accessories = json_decode($row->accessories, true);
 		$color = $row->color;
-		// Si c'est NULL, 'NULL' en string, ou vide, on affiche rien
+
 		if (is_null($color) || $color === 'NULL' || $color === '') {
 			$color = '';
 		}
@@ -2509,7 +2509,57 @@ add_filter('pre_site_transient_update_core','remove_core_updates');
 add_filter('pre_site_transient_update_plugins','remove_core_updates');
 add_filter('pre_site_transient_update_themes','remove_core_updates');
 
-/* ----------------------------  LOADING LOGO - GLOBAL FUNCTION  ---------------------------- */
+/* ========================================================================================================================================== */
+/*                                                          CALENDAR LOGIC                                                                    */
+/* ========================================================================================================================================== */
+function ajax_data_block_calendar_data() {
+    $nonce = wp_create_nonce('get_calendar_data_nonce');
+    $ajax_url = admin_url('admin-ajax.php');
+    return "<div id='ajax-data-block-calendar-data' data-nonce='{$nonce}' data-url='{$ajax_url}' style='display:none;'></div>";
+}
+add_shortcode('ajax-data-block-calendar-data', 'ajax_data_block_calendar_data');
+
+add_action('wp_ajax_get_entries_per_day', 'myplugin_get_entries_per_day');
+add_action('wp_ajax_nopriv_get_entries_per_day', 'myplugin_get_entries_per_day');
+
+function myplugin_get_entries_per_day() {
+    global $wpdb;
+
+     if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'get_calendar_data_nonce')) {
+        wp_send_json_error('Wrong token.');
+    }
+
+	 if (!isset($_POST['table']) || empty($_POST['table'])) {
+        wp_send_json_error('Table name missing.');
+    }
+	
+	$table = preg_replace('/[^a-zA-Z0-9_]/', '', $_POST['table']); 
+    if (empty($table)) {
+        wp_send_json_error('Invalid table name.');
+    }
+	
+
+    $query = $wpdb->prepare("
+        SELECT due_date, COUNT(*) AS due_count
+        FROM {$table}
+        WHERE status = %d
+        GROUP BY due_date
+        ORDER BY due_date
+    ", 0);
+	
+    $results = $wpdb->get_results($query);
+
+    if ($results !== null) {
+        wp_send_json_success($results);
+    } else {
+        wp_send_json_error('Query failed');
+    }
+}
+
+
+/* ========================================================================================================================================== */
+/*                                                          LOADING LOGO.                                                                     */
+/* ========================================================================================================================================== */
 function add_spinner_loading() {
      ?>
     <style>
