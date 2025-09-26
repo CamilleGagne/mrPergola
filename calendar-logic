@@ -1,0 +1,297 @@
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+
+var calendarData = null;
+var calendarCreated = false;
+const forecastTabButton = document.querySelector('#forecast_calendar_tab');
+const serviceTabButton = document.querySelector('#service_calendar_tab');
+document.addEventListener('DOMContentLoaded', function () {
+	if (!forecastTabButton && !serviceTabButton) return; 
+
+	var tabButton = forecastTabButton ? forecastTabButton : serviceTabButton;
+	const tabContentId = tabButton.getAttribute('aria-controls'); 
+	const tabContent = document.getElementById(tabContentId);
+	if (!tabContent) return;
+
+	function isTabVisible() {
+		const rect = tabContent.getBoundingClientRect();
+		return rect.width > 0 && rect.height > 0;
+	}
+
+	function makeCalendars() {
+		if (!calendarData || calendarCreated) return; 
+		showLoading();
+		const events = calendarData.data.map(function(row) {
+			return {
+				title: row.due_count,
+				start: row.due_date
+			};
+		});
+
+		const months = [0, 1, 2];
+		const calendarIds = ['calendar-1', 'calendar-2', 'calendar-3'];
+
+		months.forEach((offset, i) => {
+			const monthDate = getMonthDate(offset);
+			const filteredEvents = getEventsForMonth(events, monthDate);
+			createCalendar(calendarIds[i], monthDate, filteredEvents);
+		});
+		calendarCreated = true;
+		hideLoading();
+	}
+
+	function initCalendarWhenVisible() {
+		if (isTabVisible()) {
+			makeCalendars();
+			hideLoading();
+		} else {
+			setTimeout(initCalendarWhenVisible, 100); // réessayer
+		}
+	}
+
+	tabButton.addEventListener('click', function() {
+		setTimeout(initCalendarWhenVisible, 50);
+	});
+
+	if (tabButton.getAttribute('aria-selected') === 'true') {
+		setTimeout(initCalendarWhenVisible, 50);
+	}
+
+	fetchCalendarData(tabButton);
+});	
+	
+	
+/* ========================== CALENDAR LOGIC ========================== */
+function getEventsForMonth(events, monthDate) {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    return events.filter(event => {
+        const eventDate = new Date(event.start);
+        return eventDate.getFullYear() === year && eventDate.getMonth() === month;
+    });
+}
+
+function getMonthDate(offset) {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth() + offset, 1);
+}
+
+function createCalendar(elementId, initialDate, eventDates) {
+    const calendarEl = document.getElementById(elementId);
+    if (!calendarEl) return;
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        initialDate: initialDate,
+        showNonCurrentDates: false,
+        contentHeight: 400,
+        headerToolbar: { left: '', center: 'title', right: '' },
+        handleWindowResize: true,
+        events: eventDates,
+        eventContent: function(arg) {
+            return { html: '<div class="my-event-circle">' + arg.event.title + '</div>' };
+        },
+        eventClick: function(arg) {
+						clickEventCB(arg.event.startStr)
+        }
+    });
+    calendar.render();
+    calendar.updateSize();
+}
+
+function clickEventCB(selectedDate){
+	var table, tableDivName, index;
+	var matchingRows = [];
+	const dateObj = new Date(selectedDate); 
+	if(forecastTabButton){
+			table = document.getElementById('forecastTable_0');
+			if (!table){return;}
+			const formattedDate = ("0" + dateObj.getDate()).slice(-2) + '/' + ("0" + (dateObj.getMonth() + 1)).slice(-2); selectedDate = 2025-09-12
+			const rows = table.querySelectorAll('tbody tr');
+
+			rows.forEach(row => {
+				const dateCell = row.cells[3].textContent.trim(); 
+				if(dateCell === formattedDate) {
+					matchingRows.push(row); 
+				}
+			});
+	}else{
+		table = document.getElementById('fixlistTable_0');	
+		if (!table){return;}
+		const dateObj = new Date(selectedDate); 
+		const parts = selectedDate.split("-");
+		const formattedDate = parts[2] + "/" + parts[1];
+		const rows = table.querySelectorAll('tbody tr');
+		
+		rows.forEach(row => {
+			const dateCell = row.cells[2].textContent.trim(); 
+			if(dateCell === formattedDate) {
+				matchingRows.push(row); 
+			}
+		});
+	}
+	
+	generateFilteredTable(matchingRows, dateObj);
+}	
+	
+function generateFilteredTable(matchingRows, tableId, dateObj) {
+  	var tableContainer, titleElement, tableId;
+		if(forecastTabButton){
+			tableContainer = document.getElementById('forecast-filtered-table'); 
+			titleElement = document.getElementById('filtered_table_title');		
+			tableID = 'filteredForecastTable';
+		}else{
+			tableContainer = document.getElementById('service-filtered-table'); 
+			titleElement = document.getElementById('service_table_title');
+			tableId = 'filteredServiceTable';
+		}
+    if (!tableContainer) {return;}
+
+    // Si un tableau existe déjà, le supprimer
+    while (tableContainer.firstChild) {
+        tableContainer.removeChild(tableContainer.firstChild);
+    }
+
+    tableId = tableId || 'filteredTable';
+    var customStyle = 'color: blue;';
+
+    var container = document.createElement('div');
+    container.className = 'mrpergola-table-container';
+
+    var table = document.createElement('table');
+    table.id = tableId;
+    table.className = 'mrpergola-table display';
+    table.style.padding = '0px';
+		
+		if (forecastTabButton){
+			table.innerHTML = '<thead>' +
+				'<tr>' +
+				'<th>Name</th><th>Entry</th><th>Due</th>' +
+				'<th>Model</th><th>Type</th><th>Width</th><th>Depth</th>' +
+				'<th>Subframe Size</th><th>Subframe Qty</th><th>Louver Size</th><th>Louver Qty</th>' +
+				'<th>Post Size</th><th>Post Qty</th><th>Soldiers</th><th>Color</th>' +
+				'<th>Accessories</th><th>Postal Code</th>' +
+				'</tr>' +
+				'</thead>';
+
+			var tbody = document.createElement('tbody');
+
+			for (var i = 0; i < matchingRows.length; i++) {
+				var row = matchingRows[i];
+				var tr = document.createElement('tr');
+				tr.dataset.id = row.dataset.id;
+				var cells = [];
+				cells.push('<td class="full_name">' + row.querySelector('.full_name').innerHTML + '</td>');
+				cells.push('<td class="entry_date">' + row.querySelector('.entry_date').textContent + '</td>');
+				cells.push('<td class="due_date">' + row.querySelector('.due_date').textContent + '</td>');
+				cells.push('<td class="model">' + row.querySelector('.model').textContent + '</td>');
+				cells.push('<td class="model_type">' + row.querySelector('.model_type').textContent + '</td>');
+				cells.push('<td class="width" style="' + customStyle + '">' + row.querySelector('.width').textContent + '</td>');
+				cells.push('<td class="depth" style="' + customStyle + '">' + row.querySelector('.depth').textContent + '</td>');
+				cells.push('<td class="subframe_size" style="' + customStyle + '">' + row.querySelector('.subframe_size').textContent + '</td>');
+				cells.push('<td class="subframe_qty" style="' + customStyle + '">' + row.querySelector('.subframe_qty').textContent + '</td>');
+				cells.push('<td class="louver_size">' + row.querySelector('.louver_size').textContent + '</td>');
+				cells.push('<td class="louver_qty" >' + row.querySelector('.louver_qty').textContent + '</td>');
+				cells.push('<td class="post_size" style="' + customStyle + '">' + row.querySelector('.post_size').textContent + '</td>');
+				cells.push('<td class="post_qty" style="' + customStyle + '">' + row.querySelector('.post_qty').textContent + '</td>');
+				cells.push('<td class="soldiers" >' + row.querySelector('.soldiers').textContent + '</td>');
+				cells.push('<td class="color">' + row.querySelector('.color').textContent + '</td>');
+				cells.push('<td class="accessories" >' + row.querySelector('.accessories').textContent + '</td>');
+				cells.push('<td class="postal_code" >' + row.querySelector('.postal_code').textContent + '</td>');
+				cells.push('<td class="custom_fields hidden-data" style="display:none">' + row.querySelector('.custom_fields').textContent + '</td>');
+				tr.innerHTML = cells.join('');
+				tbody.appendChild(tr);
+			}		
+		}else{
+			
+			table.innerHTML = '<thead>' +
+				'<tr>' +
+				'<th>Rank</th><th>Due</th><th>Input</th>' +
+				'<th>Fixer</th><th>Fix Time</th><th>Phone#</th><th>Name</th>' +
+				'<th>Address</th><th>Postal Code</th><th>Description</th>' +
+				'</tr>' +
+				'</thead>';
+
+			var tbody = document.createElement('tbody');
+
+			for (var i = 0; i < matchingRows.length; i++) {
+				var row = matchingRows[i];
+				var tr = document.createElement('tr');
+				tr.dataset.id = row.dataset.id;
+				var priorityValue = row.cells[1].textContent.trim(); 
+				var bgColor;
+				if (priorityValue === '1') {
+					bgColor = '#ffdddd'; // rouge
+				} else if (priorityValue === '2') {
+					bgColor = '#fff7cc'; // jaune
+				} else {
+					bgColor = '#ddffdd'; // vert
+				}	
+				var cells = [];
+				
+				cells.push('<td style="background-color:' + bgColor + ';">' + priorityValue + '</td>');				
+				//cells.push('<td >' + row.cells[1].innerHTML + '</td>');
+				cells.push('<td >' + row.cells[2].innerHTML + '</td>');
+				cells.push('<td >' + row.cells[3].innerHTML + '</td>');
+				cells.push('<td >' + row.cells[4].innerHTML + '</td>');
+				cells.push('<td >' + row.cells[5].innerHTML + '</td>');
+				cells.push('<td >' + row.cells[6].innerHTML + '</td>');
+				cells.push('<td >' + row.cells[7].innerHTML + '</td>');
+				cells.push('<td >' + row.cells[8].innerHTML + '</td>');
+				cells.push('<td >' + row.cells[9].innerHTML + '</td>');
+				cells.push('<td >' + row.cells[10].innerHTML + '</td>');
+				tr.innerHTML = cells.join('');
+				tbody.appendChild(tr);
+			}		
+		}
+
+    table.appendChild(tbody);
+    container.appendChild(table);
+
+    tableContainer.appendChild(container);
+		if(titleElement && dateObj){
+			var options = { year: 'numeric', month: 'long', day: 'numeric' };
+			var formattedDate = dateObj.toLocaleDateString('en-US', options);
+			titleElement.textContent = 'Forecast data for : ' + formattedDate;
+		}
+}
+
+	
+	
+function fetchCalendarData(tabBtn) {
+    const ajaxDataEl = document.getElementById('ajax-data-block-calendar-data');
+    if (!ajaxDataEl) return;
+
+    const ajaxNonce = ajaxDataEl.getAttribute('data-nonce');
+    const ajaxUrl = ajaxDataEl.getAttribute('data-url');
+    const params = new URLSearchParams();
+  	//var tableName = tabBtn.id === 'forecast_calendar_tab' ? 'wp_forecast_table' : 'wp_custom_form_fixlist';   
+		var tableName = forecastTabButton ? 'wp_forecast_table' : 'wp_custom_form_fixlist';   
+	  
+	params.append('action', 'get_entries_per_day');
+    params.append('_wpnonce', ajaxNonce);
+	 	params.append('table', tableName);
+
+    showLoading();
+
+    fetch(ajaxUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+    })
+    .then(response => response.json())
+    .then(result => {
+        hideLoading();
+        if (result.success) {
+            calendarData = result; // variable globale
+        } else {
+					 hideLoading();
+            alert("Failed to fetch entry data: " + (result.data || "Unknown error"));
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        alert("Errors: " + error);
+    });
+}	
+</script>
