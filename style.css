@@ -391,17 +391,17 @@ table.table-custom td {
 .mrpergola-table th { 
     background:#202124; 
     color:#fff; 
-    padding:5px 5px; 
+    padding:5px 5px !important;
 		font-size:13px;
     border-bottom: 1px solid #e0e0e0; 
 		line-height:1;
-	  text-align:center; 
+	  text-align:center !important; 
     vertical-align: middle;  
     text-transform: uppercase; 
 }
 
 .mrpergola-table td { 
-    padding:5px 10px; 
+    padding:5px 10px; !important
     text-align:center; 
     vertical-align: middle; 
 		line-height:1.2;
@@ -555,7 +555,7 @@ body .mrpergola-form-group input::placeholder,
 body .mrpergola-form-group select::placeholder,
 body .mrpergola-form-group-small input::placeholder,
 body .mrpergola-form-group-small select::placeholder {
-    color: grey !important;
+    color: lightgray !important;
     opacity: 1 !important;
 }
 
@@ -771,6 +771,95 @@ body .mrpergola-form-group .checkboxes {
     width: 100%;
   }
 }
+
+/* =========================
+   Calendar – Styles
+   ========================= */
+
+/* Reduce font size for the entire calendar */
+.fc {
+    font-size: 13px;
+    font-family: Roboto; /* adjust as needed */
+}
+
+/* Make event text smaller */
+.fc .fc-event-title {
+    font-size: 11px;
+}
+
+/* Compact day cells */
+.fc .fc-daygrid-day {
+    padding: 2px;
+}
+
+/* Remove background and bottom borders/spacing */
+.fc .fc-daygrid-body,
+.fc .fc-daygrid {
+    background: transparent;
+    border-bottom: none;
+}
+
+/* Remove extra margins/padding in body and header tables */
+.fc .fc-daygrid-body table,
+.fc .fc-col-header,
+.fc .fc-col-header table,
+.fc .fc-col-header-cell {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    padding: 2px !important; /* header cells compact */
+}
+
+.fc-daygrid-event {
+  background: none !important;  /* remove default block */
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: absolute;           /* float inside cell */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -35%); /* move down 10% from center */
+}
+
+.my-event-circle {
+  width: 28px;              /* adjust size */
+  height: 28px;
+  border-radius: 50%;
+  background-color: #3788d8; /* circle color */
+  color: #fff;              /* text color */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;          /* text size */
+  font-weight: bold;
+  cursor: pointer; 
+}
+
+.my-event-circle:hover {
+  background-color: #2563eb; /* slightly darker blue on hover */
+  transform: scale(1.1);     /* subtle grow effect */
+  transition: all 0.15s ease;
+}
+
+.my-calendar-tab .fc {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  font-size: 13px;
+}
+
+.my-calendar-tab .fc .fc-daygrid-day {
+  min-height: 80px; /* prevents cells from collapsing */
+}
+
+.my-calendar-tab .fc-daygrid-event {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -35%);
+}
+
+
+
 
 
 /* contact gravity form css */
