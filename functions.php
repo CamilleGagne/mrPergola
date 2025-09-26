@@ -28,12 +28,6 @@ function hello_elementor_child_enqueue_styles() {
 }
 add_action( 'wp_enqueue_scripts', 'hello_elementor_child_enqueue_styles' );
 
-/*Calendar*/
-function enqueue_fullcalendar_assets() {
-    wp_enqueue_style( 'fullcalendar-css', 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css' );
-    wp_enqueue_script( 'fullcalendar-js', 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js', [], null, true );
-}
-add_action( 'wp_enqueue_scripts', 'enqueue_fullcalendar_assets' );
 
 /*This creates the tables used in fixlist, forecast and todo.*/
 function enqueue_datatables_assets() {
@@ -466,7 +460,7 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 			send_email($email_to, $subject, $body, true);
 		}
 	}else if ($form_name === 'forecast_form'){  
-		$customFields = [];
+		/*$customFields = [];
 		$louverLength = $fields['forecast_form_louverLength'];
 		$customerName = ucwords(trim($fields['forecast_form_name'])) . ' ' . ucwords(trim($fields['forecast_form_last_name']));
 		
@@ -547,7 +541,7 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 				'entry_date' => $formattedCurrentDate,
 				'custom_fields' => json_encode($customFields),
 			)
-		);
+		);*/
 	}else if ($form_name === 'todo_form'){
 		if ($fields['todolist_email'] === 'Other'){
 			$email_to = $fields['todo_custom_email'];
@@ -739,7 +733,7 @@ function save_table_cb() {
 		$format = array('%d','%d','%s', '%s','%s','%s','%s','%s','%s','%s','%s');
 		[$errors, $success] = execute_save($data, $table, $columns, $format);
 	}else if ($action === 'save_forecast_table'){
-		$table = 'wp_forecast_table';//'wp_custom_form_forecast';
+		$table = 'wp_forecast_table';
 		$columns = ['status','entry_date','due_date','model','model_type','width','depth','subframe_size','subframe_qty','louver_size', 'louver_qty','post_size','post_qty','soldiers','color','accessories'];
 		$format = array('%d','%s', '%s','%s','%s', '%s', '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s');
 		[$errors, $success] = execute_save_forecast($data, $table, $columns, $format);
@@ -778,7 +772,7 @@ function get_row_data_ajax() {
     global $wpdb;
  
     // Fetch row from database
-	$row = $wpdb->get_row($wpdb->prepare("SELECT * FROM wp_custom_form_forecast WHERE id = %d", $row_id));
+	$row = $wpdb->get_row($wpdb->prepare("SELECT * FROM wp_forecast_table WHERE id = %d", $row_id));
 
     if (!$row) {
          error_log("get_row_data_ajax: No row found for id = $row_id in table $table_name");
@@ -820,7 +814,7 @@ function handle_save_docs() {
 	require_once(ABSPATH . 'wp-admin/includes/image.php');
 
 	global $wpdb;
-	$table = 'wp_custom_form_forecast';
+	$table = 'wp_forecast_table';
 	$rowId = intval($_POST['id']);
 	$uploaded_links = [];
 
@@ -1014,11 +1008,6 @@ function display_forecast_data($status) {
 	global $wpdb;
 	global $customValuesToCheck;
 	$customFlags = [];
-	
-	//$results = $wpdb->get_results(
-        //$wpdb->prepare("SELECT * FROM wp_custom_form_forecast WHERE status = %d", $status)
-      //  $wpdb->prepare("SELECT * FROM wp_forecast_table WHERE status = %d", $status)
-    //);
 	
 	 $query = $wpdb->prepare(
         "SELECT c.*, f.* 
@@ -1325,7 +1314,7 @@ function calculate_forecast_material(){
 	global $wpdb;
 	
 	// Get data from DB
-    $table_name = 'wp_custom_form_forecast'; 
+    $table_name = 'wp_forecast_table'; 
 	$results = $wpdb->get_results("SELECT * FROM `$table_name` WHERE status = '$status'");
 	if (empty($results)) {
         return '<p style="font-family: Roboto, sans-serif;text-align: center;"">No data found.</p>';
