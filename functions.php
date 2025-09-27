@@ -460,7 +460,7 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 			send_email($email_to, $subject, $body, true);
 		}
 	}else if ($form_name === 'forecast_form'){  
-		/*$customFields = [];
+		$customFields = [];
 		$louverLength = $fields['forecast_form_louverLength'];
 		$customerName = ucwords(trim($fields['forecast_form_name'])) . ' ' . ucwords(trim($fields['forecast_form_last_name']));
 		
@@ -541,7 +541,7 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 				'entry_date' => $formattedCurrentDate,
 				'custom_fields' => json_encode($customFields),
 			)
-		);*/
+		);
 	}else if ($form_name === 'todo_form'){
 		if ($fields['todolist_email'] === 'Other'){
 			$email_to = $fields['todo_custom_email'];
@@ -1004,7 +1004,6 @@ add_shortcode('show_fixlist_data', 'display_fixlist_data_table');
 
 /* ----------------------------  Retrieve Forecast data and display it  ---------------------------- */
 function display_forecast_data($status) {
-	
 	global $wpdb;
 	global $customValuesToCheck;
 	$customFlags = [];
@@ -1309,12 +1308,43 @@ function calculateSubframes($results){
 	];
 }
 
+function calculateAccessories($results){
+	$totalAccessories = 0;
+	$accessoryCounts  = [];
+
+	foreach ($results as $result) {
+		if ($result->accessories === "NULL" || empty($result->accessories)) {
+			continue;
+		}
+
+		$accessories = json_decode($result->accessories, true);
+		if (is_array($accessories)) {
+			$totalAccessories += count($accessories);
+
+			foreach ($accessories as $accessory) {
+				if (!isset($accessoryCounts[$accessory])) {
+					$accessoryCounts[$accessory] = 0;
+				}
+				$accessoryCounts[$accessory]++;
+			}
+		}
+	}
+
+	$stdKeys = array_keys($accessoryCounts);
+	$stdValues = array_values($accessoryCounts);
+
+	return (object)[
+		'stdKeys' => $stdKeys,
+		'stdValues' => $stdValues
+	];
+}
+
 function calculate_forecast_material(){
 	ob_start();
 	global $wpdb;
 	
 	// Get data from DB
-    $table_name = 'wp_forecast_table'; 
+    $table_name = 'wp_forecast_table';
 	$results = $wpdb->get_results("SELECT * FROM `$table_name` WHERE status = '$status'");
 	if (empty($results)) {
         return '<p style="font-family: Roboto, sans-serif;text-align: center;"">No data found.</p>';
@@ -1324,14 +1354,14 @@ function calculate_forecast_material(){
 	$postsCount = calculatePosts($results);
 	$subframesCount = calculateSubframes($results);
 	$louversCount = calculateLouvers($results);
+	$accessoriesCount = calculateAccessories($results);
 	
 	$soldiers_total = 0;
-	//Calculate values based on data
 	foreach ($results as $obj) {
-		$soldiers_total += $obj->soldiers; 
+		$soldiers_total += is_numeric($obj->soldiers) ? (int)$obj->soldiers : 0;
 	};
-
-	echo '<table id="materialTable" class="table-custom display"; style="width:100%; padding=10px;">';
+	
+	echo '<table id="materialTable" class="mrpergola-table display"; padding=0px;">';
 	echo '<thead>';
 
 	// Beams label
@@ -1341,8 +1371,10 @@ function calculate_forecast_material(){
 				<th colspan="1" style="background-color:black;border-right:2px solid black;">Louvers</th>
 				<th colspan="1" style="background-color:#4c5357;border-right:2px solid black;">Soldiers</th>
 				<th colspan="3" style="background-color:black; color:white; text-align:center;">Posts</th>
+				<th colspan="1" style="background-color:#4c5357;"></th>
 			  </tr>';
 
+	
 	// Second row: individual headers
 	echo '<tr>
 				<th style="background-color:black; color:white;">3S</th>
@@ -1356,6 +1388,7 @@ function calculate_forecast_material(){
 				<th style="background-color:black; color:white;">3S & 4S</th>
 				<th style="background-color:black; color:white;">Modern</th>
 				<th style="background-color:black; color:white;">Custom</th>
+				<th style="background-color:#4c5357; color:white;">Accessories</th>
 			  </tr>';
 
 	echo '</thead>';
@@ -1371,11 +1404,12 @@ function calculate_forecast_material(){
 		count($subframesCount->customKeys),
 		count($louversCount->stdKeys),
 		count($postsCount->stdKeys),
-		count($postsCount->modernKeys)
+		count($postsCount->modernKeys),
+		//count($accessoriesCount->stdKeys)
 	);
 	
+	
 	for ($i = 0; $i < $max_rows; $i++) {
-
 		//3S beams	
 		if ($widthsAndDepths->std3Keys[$i]){
 			echo '<td>' . $widthsAndDepths->std3Keys[$i]  . ' = ' . $widthsAndDepths->std3Values[$i] . '</td>';	
@@ -1446,11 +1480,18 @@ function calculate_forecast_material(){
 
 		//Custom Post
 		if ($postsCount->customValues[$i]){
-			echo '<td>' . $postsCount->customKeys[$i] . ' = ' . $postsCount->customValues[$i] . '</td>';	
+			echo '<td style="border-right:2px solid black;">' . $postsCount->customKeys[$i] . ' = ' . $postsCount->customValues[$i] . '</td>';	
+		}else{
+			echo '<td style="border-right:2px solid black;"></td>';
+		}
+
+		//Accessories		
+		if ($accessoriesCount->stdKeys[$i]){
+			echo '<td>' . $accessoriesCount->stdKeys[$i]  . ' = ' . $accessoriesCount->stdValues[$i] . '</td>';
 		}else{
 			echo '<td></td>';
 		}
-
+		
 
 		echo '</tr>';
 	}
