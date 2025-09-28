@@ -1,5 +1,8 @@
 <script>	
 document.addEventListener('DOMContentLoaded', function () {
+	var ajaxDataDiv = document.getElementById('ajax-data-block-forecast_custom');
+	var ajaxNonce = ajaxDataDiv.getAttribute('data-nonce');
+	
 	var widthField = document.querySelector('#frame_width_unit');
 	var depthField = document.querySelector('#frame_depth_unit');
 	var louverSizeField = document.querySelector('#louver_length');
@@ -23,6 +26,16 @@ document.addEventListener('DOMContentLoaded', function () {
 	var input = document.getElementById('customer_images');
 	var fileList = document.getElementById('file-list');
 	var saveBtn = document.getElementById('forecast_save_btn');
+	var successContainer = document.getElementById('success_message');
+	var errorContainer = document.getElementById('error_message');
+			//customer
+	var date = document.getElementById('due_date');
+	var color = document.getElementById('forecast_color');
+	var firstName = document.getElementById('first_name');
+	var lastName = document.getElementById('last_name');
+	var email = document.getElementById('forecast_email');
+	var postalCode = document.getElementById('forecast_postal_code');
+	var phoneNum = document.getElementById('forecast_phone_num');
 
 // ===================== FILE PICKER LOGIC ===================== 
 	// Open filepicker
@@ -32,43 +45,46 @@ document.addEventListener('DOMContentLoaded', function () {
 			}
 	});
 
+	
 	input.addEventListener('change', function() {
-			
-			fileList.innerHTML = '';
+    fileList.innerHTML = '';
 
-			if (input.files.length === 0) {
-					fileList.textContent = 'No file selected';
-					return;
-			}
+    if (input.files.length === 0) {
+        fileList.textContent = 'No file selected';
+        return;
+    }
 
-			var files = Array.prototype.slice.call(input.files);
-			for (var i = 0; i < files.length; i++) {
-					var div = document.createElement('div');
-					div.textContent = files[i].name;
-					fileList.appendChild(div);
-			}
+    var files = Array.from(input.files);
+    files.forEach((file, index) => {
+        var div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '4px';
 
-			// send data
-			/*
-			var formData = new FormData();
-			for (var j = 0; j < files.length; j++) {
-					formData.append('customer_image[]', files[j]);
-			}
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = file.name;
+        nameSpan.style.flex = '1';
 
-			var xhr = new XMLHttpRequest();
-			xhr.open('POST', '/upload-endpoint', true);
-			xhr.onload = function () {
-					if (xhr.status === 200) {
-							console.log('Upload Succeeded', xhr.responseText);
-					} else {
-							console.error('Error', xhr.statusText);
-					}
-			};
-			xhr.send(formData);
-			*/
+        var removeBtn = document.createElement('button');
+        removeBtn.textContent = '❌';
+        removeBtn.style.color = 'red';
+        removeBtn.style.border = 'none';
+        removeBtn.style.background = 'transparent';
+        removeBtn.style.cursor = 'pointer';
+        removeBtn.addEventListener('click', function() {
+            div.remove();
+            if (fileList.children.length === 0) {
+                fileList.textContent = 'No file selected';
+            }
+        });
+
+        div.appendChild(nameSpan);
+        div.appendChild(removeBtn);
+        fileList.appendChild(div);
+    });
 	});
 
-	// ===================== FORM LOGIC ===================== 
+// ===================== FORM LOGIC ===================== 
 	//Disable all fields until Model is selected 	
 	function disableFields(disable, fieldList){
 		if (disable){
@@ -121,7 +137,6 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	}	
 
-
 	function calculateLouverQty(){
 		if (isModern && widthField && widthField.value){
 			var width = cleanInput(widthField.value);
@@ -160,7 +175,24 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	}	
 
-	/* ===== EVENT LISTENERS FOR FORM CALCULATIONS ===== */
+/* ===== EVENT LISTENERS FOR FORM CALCULATIONS ===== */
+	
+	firstName.addEventListener('change', function(){
+		if (firstName && firstName.value){
+			if (email && email.value){
+				saveBtn.disabled=false;
+			}
+		}
+	});
+	
+	email.addEventListener('change', function(){
+		if (firstName && firstName.value){
+			if (email && email.value){
+				saveBtn.disabled=false;
+			}
+		}
+	});
+
 	widthField.addEventListener('change', function() {
 		if (widthField.value === 'custom'){
 			customWidth.classList.remove('hidden');
@@ -210,7 +242,6 @@ document.addEventListener('DOMContentLoaded', function () {
 	customSubSize.addEventListener('input', function(){
 		calculateLouverQty();
 	});
-
 	subframeQtyField.addEventListener('change', function(){
 		if (subframeQtyField.value === 'custom'){
 			customSubQty.classList.remove('hidden');
@@ -300,26 +331,21 @@ document.addEventListener('DOMContentLoaded', function () {
 		}				
 	}
 
+	if (saveBtn){
+		saveBtn.disabled = true;
+	}
 	disableFields(true, fieldToDisableList);	
 	
 	/*.  SAVE BTN LOGIC.  */
 	saveBtn.addEventListener('click', function(e){
 		 e.preventDefault();
  	
-		//customer
-		var date = document.getElementById('due_date');
-		var color = document.getElementById('forecast_color');
-		var first_name = document.getElementById('first_name');
-		var last_name = document.getElementById('last_name');
-		var email = document.getElementById('forecast_email');
-		var postal_code = document.getElementById('forecast_postal_code');
-		
 		var formData = new FormData();
 		
-	 	formData.append('first_name', first_name.value || '');
-    formData.append('last_name', last_name.value || '');
+	 	formData.append('first_name', firstName.value || '');
+    formData.append('last_name', lastName.value || '');
     formData.append('email', email.value || '');
-    formData.append('postal_code', postal_code.value || '');
+    formData.append('postal_code', postalCode.value || '');
     formData.append('model', modelField.value || '');
     formData.append('modelType', modelType.value || '');
     formData.append('widthField', customWidth.value || widthField.value || '');
@@ -333,6 +359,17 @@ document.addEventListener('DOMContentLoaded', function () {
     formData.append('postQty', customPostQty.value || postQtyField.value || '');
     formData.append('date', date.value || '');
     formData.append('color', color.value || '');
+		formData.append('phoneNum', phoneNum.value || '');
+		
+		var customValues = [];
+		[customWidth, customDepth, customSubQty, customSubSize, customPostQty, customPostSize].forEach(function(el) {
+    if (el && el.value.trim() !== '') {
+        customValues.push(el.name);
+    }
+	});
+		for (var k = 0; k < customValues.length; k++) {
+    	formData.append('custom[]', customValues[k]);
+		}
 
     // Add checked extras values
     var extras = document.querySelectorAll('.checkboxes input[type="checkbox"]:checked');
@@ -346,33 +383,39 @@ document.addEventListener('DOMContentLoaded', function () {
             formData.append('customer_image[]', input.files[j]);
         }
 		}
-		saveForm(formData);
+		saveForm(formData, ajaxNonce);
 	});
 	
-
-	
-	function saveForm(formData){
-	
+	function saveForm(formData)
+	{
 		formData.append('action', 'save_forecast_form');
-		formData.append('_wpnonce', ajaxNonce);
-	
+		formData.append('_wpnonce', ajaxNonce); 
+		
+		showLoading();
 		// send via fetch
 		fetch('/wp-admin/admin-ajax.php', {
-			method: 'POST',
-				body: formData
+    method: 'POST',
+    body: formData
 		})
 		.then(function(response) {
-			return response.json();
+				return response.json(); // parse JSON
 		})
 		.then(function(data) {
-			if (data && data.success) {
-				console.log('Saved successfully:', data);
-			} else {
-				console.error('Save failed:', data);
-			}
+				hideLoading();
+				if (data && data.success) {
+					if (successContainer){
+						successContainer.classList.remove('hidden');
+					}
+					 setTimeout(function() {
+							location.reload(); // recharge la page après 3 secondes
+					}, 3000);
+				} else {
+					if (errorContainer){
+						errorContainer.classList.remove('hidden');
+					}
+					alert('error:' + data.message);
+				}
 		});
 	}
-	
-	
 });
 </script>
