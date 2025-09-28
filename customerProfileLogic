@@ -2,6 +2,8 @@
 var originalData;
 var data;
 var orderNotification;
+var successContainer = document.getElementById('success_message');
+var errorContainer = document.getElementById('error_message');
 /*Customer Profile*/	
 var title = document.getElementById('customer_profile_name');
 var first_name = document.getElementById('customer_first_name');
@@ -52,18 +54,21 @@ document.addEventListener('DOMContentLoaded', function () {
 	notifyTeamBtn.addEventListener('click', function(e){
 		e.preventDefault();
 		e.stopPropagation();
+		saveActiveTab();
 		openPopup(4625);
 	});
 	
 	notifyCustomerBtn.addEventListener('click', function(e){
 		e.preventDefault();
 		e.stopPropagation();
+		saveActiveTab();
 		notifyCustomer();
 	});
 	
 	addNoteBtn.addEventListener('click', function(e){
 		e.preventDefault();
 		e.stopPropagation();
+		saveActiveTab();
 		openPopup(4837);
 	});
 	
@@ -131,6 +136,16 @@ document.addEventListener('DOMContentLoaded', function () {
 	
 });
 	
+function saveActiveTab(){
+		var activeTab = document.querySelector('.e-n-tab-title[aria-selected="true"]');
+			if (activeTab) {
+				var index = activeTab.getAttribute('data-tab-index');
+				if (index !== null) {
+					localStorage.setItem('activeEnTabIndex', index);
+				}
+			}
+}	
+	
 function activateTab(){
 	//Automatically select tab user was on
 	  var savedIndex = localStorage.getItem('activeEnTabIndex');
@@ -193,7 +208,7 @@ function notifyCustomer(){
 			// Parse response as JSON
 		}).then(function(data) {
 			if (data && data.success) {
-				location.reload();
+				//location.reload();
 				getActiveTabAndReload();
 				//alert('Customer was successfully sent an email!');
 			} else {
@@ -237,14 +252,16 @@ function populatePage(data){
 				fileList.style.setProperty('padding-top', '7px', 'important');
     	}
 		}
+		renderForecastTable(data);
+	}else{
+		forecastTableContainer.innerHTML = 'No data found';
+		teamSelected.disabled = true;
+		orderStatus.disabled = true;
+		notifyCustomerBtn.disabled = true;
 	}
-	
-  renderForecastTable(data);
 	
 	hideLoading();	
 }
-
-	
 
 // Load existing URLs into the file list
 function loadDocs(docs) {
@@ -262,7 +279,7 @@ function loadDocs(docs) {
                     fileList.textContent = 'No file selected';
 									  fileList.style.setProperty('padding-top', '7px', 'important');
                 }
-            }, true)); // true = it's a URL
+            }, true)); 
         });
     } else {
         fileList.textContent = 'No file selected';
@@ -297,8 +314,8 @@ function createFileItem(fileOrUrl, onRemove, isUrl) {
         nameElement = document.createElement('span');
         nameElement.textContent = fileOrUrl.name;
         nameElement.dataset.filename = fileOrUrl.name;
-        nameElement.dataset.fileIndex = null; // optional, for tracking
-        nameElement.fileObject = fileOrUrl; // attach File object to span for FormData
+        nameElement.dataset.fileIndex = null; 
+        nameElement.fileObject = fileOrUrl; 
         nameElement.style.flex = '1';
     }
 
@@ -424,7 +441,7 @@ function loadCustomerData(id){
     .then(function(response) {
         if (response.status === 404) {
             hideLoading();
-            console.log("No profile found");
+            alert("No profile found");
             return null;
         }
         if (!response.ok) {
@@ -441,7 +458,7 @@ function loadCustomerData(id){
     })
     .catch(function(err){
         hideLoading();
-        console.error('Error loading profile:', err);
+        alert('Error loading profile:', err);
     });
 }
 
@@ -509,7 +526,8 @@ function isValueDifferent(data, formName){
 	
 function getCheckedRow(){
 	var forecastTable = document.getElementById('customerTable');
-		var checkbox = forecastTable.querySelector('tbody tr input[type="checkbox"]:checked');
+	if (forecastTable){
+			var checkbox = forecastTable.querySelector('tbody tr input[type="checkbox"]:checked');
     if (!checkbox) {return null;}
     var row = checkbox.closest('tr');
 		var forecastId = row.dataset.id; 
@@ -517,6 +535,7 @@ function getCheckedRow(){
     		return f.id === forecastId;
 		});
 		return forecast;
+	}
 }	
 
 function isImageListDiff(addedImages,currentImageList,savedImageList) {
@@ -539,6 +558,9 @@ function getActiveTabAndReload(){
 	}
 
 	location.reload();
+	 setTimeout(() => {
+        successContainer.classList.remove('hidden');
+    }, 300);
 }	
 	
 /*Save function for the Info tab*/	
@@ -576,7 +598,9 @@ function saveCustomerInfo(){
 			hideLoading();
 			if (data && data.success) {
 				getActiveTabAndReload();
-				//alert('Customer\'s info successfully saved!');
+				if (successContainer){
+						successContainer.classList.remove('hidden');
+					}
 			} else {
 				alert('Error while saving your table: ' + data.data);
 			}
@@ -652,9 +676,7 @@ function saveCustomerOrders(){
 						forecast.extras = [extrasText];
 				}
 				
-				console.log(JSON.stringify(forecast));
 				forecasts.push(forecast);
-				console.log(JSON.stringify(forecasts));
 			}
 		}
 		
@@ -700,10 +722,6 @@ function saveCustomerOrders(){
 		}
 		
 		formData.append('data', JSON.stringify(forecasts));
-		console.log('data field:', formData.get('data'));
-		formData.forEach(function(value, key){
-    	console.log(key, value);
-		});
 		
 		// Send the AJAX request
 		fetch('/wp-admin/admin-ajax.php', {
@@ -713,19 +731,15 @@ function saveCustomerOrders(){
 			return response.json();
 			// Parse response as JSON
 		}).then(function(data) {
-			hideLoading();
 			if (data && data.success) {
 				getActiveTabAndReload();
-				alert('Customer\'s order successfully saved!');
 			} else {
-				console.log('error while saving');
+				hideLoading();
 				alert('Error while saving your table: ' + data.data);
 			}
 		}).catch(function(error) {
 			hideLoading();
-			console.log('fetch error');
 			alert('Fetch error:', error);
-			console.error('Fetch error:', error);
 		});
 	} else{
 		hideLoading();
