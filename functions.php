@@ -2,6 +2,7 @@
 /* ========================================================================================================================================== */
 /*                                                         ASSETS                                                                             */
 /* ========================================================================================================================================== */
+
 //Global variable of values to check
 $customValuesToCheck = ['depth', 'width', 'subSize', 'subQty', 'postSize', 'postQty'];
 
@@ -1599,11 +1600,29 @@ function display_customer_data() {
 	$customFlags = [];
 	$customStyle = 'color: blue;';
 	
-	$query =
+	/*$query =
 		  "SELECT c.*, f.* 
              FROM wp_custom_customers c
              INNER JOIN wp_forecast_table f
-             ON c.id = f.customer_id";
+             ON c.id = f.customer_id";*/
+	
+	
+	
+	$query =
+		  "SELECT c.*, f.*, 
+    	   CASE 
+        	WHEN s.customer_id IS NOT NULL THEN TRUE 
+        	ELSE FALSE 
+    		END AS hasFix
+			FROM wp_custom_customers c
+			INNER JOIN wp_forecast_table f
+				ON c.id = f.customer_id
+			LEFT JOIN (
+				SELECT DISTINCT customer_id
+				FROM wp_custom_form_fixlist
+				WHERE status = 0
+			) s
+				ON c.id = s.customer_id";
 
 	$results = $wpdb->get_results($query);
 	
@@ -1645,19 +1664,21 @@ function display_customer_data() {
 		$profile_url = site_url('/customer-profile/?id=' . urlencode($row->customer_id));
 		$full_name = $row->first_name . ' ' . $row->last_name;
 		$accessories = json_decode($row->accessories, true);
-		echo '<tr data-id="' . esc_attr($row->id) . '">';
-		echo '<td><a href="' . esc_url($profile_url) .  '" target="_blank" style="color:black;">' . esc_html($full_name) . '</a></td>';
-		echo '<td> ' . esc_attr($formatted_entry_date) . '</td>';
-		echo '<td>' . esc_attr($formatted_due_date) . '</td>';
-		echo '<td> ' . esc_attr($row->model) . '</td>';
-		echo '<td> ' . esc_attr($row->model_type) . '</td>';
-		echo '<td style="' . ($customFlags['width'] ? $customStyle : '') . '">' . esc_html($row->width) . '</td>';
-		echo '<td style="' . ($customFlags['depth'] ? $customStyle : '') . '">' . esc_html($row->depth) . '</td>';
-		echo '<td>' . esc_attr($row->color) . '</td>';
-		echo '<td>' . esc_html(implode(', ', (array) $accessories)) . '</td>';
-		echo '<td>' . esc_attr($row->postal_code) . '</td>';
-		echo '<td>' . esc_html($row->info) . '</td>';
-		echo '<td>' . esc_attr($row->order_status) . '</td>';
+		$row_style = ($row->hasFix == 1) ? 'color: #c36;' : 'color: black;';
+	
+		echo '<tr data-id="' . esc_attr($row->id) . '" style="' . $row_style . '">';
+		echo '<td><a href="' . esc_url($profile_url) .  '" target="_blank" style="' . $row_style . '">' . esc_html($full_name) . '</a></td>';
+		echo '<td style="' . $row_style . '">' . esc_attr($formatted_entry_date) . '</td>';
+		echo '<td style="' . $row_style . '">' . esc_attr($formatted_due_date) . '</td>';
+		echo '<td style="' . $row_style . '">' . esc_attr($row->model) . '</td>';
+		echo '<td style="' . $row_style . '">' . esc_attr($row->model_type) . '</td>';
+		echo '<td style="' . $row_style . ($customFlags['width'] ? $customStyle : '') . '">' . esc_html($row->width) . '</td>';
+		echo '<td style="' . $row_style . ($customFlags['depth'] ? $customStyle : '') . '">' . esc_html($row->depth) . '</td>';
+		echo '<td style="' . $row_style . '">' . esc_attr($row->color) . '</td>';
+		echo '<td style="' . $row_style . '">' . esc_html(implode(', ', (array) $accessories)) . '</td>';
+		echo '<td style="' . $row_style . '">' . esc_attr($row->postal_code) . '</td>';
+		echo '<td style="' . $row_style . '">' . esc_html($row->info) . '</td>';
+		echo '<td style="' . $row_style . '">' . esc_attr($row->order_status) . '</td>';
 		echo '</tr>';
 	}
 	echo '</tbody></table>';
