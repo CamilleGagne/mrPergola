@@ -7,6 +7,7 @@ var calendarCreated = false;
 const forecastTabButton = document.querySelector('#forecast_calendar_tab');
 const serviceTabButton = document.querySelector('#service_calendar_tab');
 document.addEventListener('DOMContentLoaded', function () {
+
 	if (!forecastTabButton && !serviceTabButton) return; 
 
 	var tabButton = forecastTabButton ? forecastTabButton : serviceTabButton;
@@ -256,8 +257,6 @@ function generateFilteredTable(matchingRows, tableId, dateObj) {
 		}
 }
 
-	
-	
 function fetchCalendarData(tabBtn) {
     const ajaxDataEl = document.getElementById('ajax-data-block-calendar-data');
     if (!ajaxDataEl) return;
