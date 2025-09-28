@@ -77,6 +77,13 @@ jQuery(document).ready(function () {
 						}).filter(function(v){ return v; });
 
 						var emailContent = msgContainer ? msgContainer.value : '';
+						
+						/*//Get images
+						var fileList = document.getElementById('customer_file_list');
+						var customerImgList = Array.from(fileList.children).map(function(item){
+							var link = item.querySelector('a');
+							return link ? link.dataset.url : item.textContent.trim();
+						});*/
 					
 						var formData = new FormData();
 						formData.append('_wpnonce', ajaxNonce);
@@ -86,6 +93,9 @@ jQuery(document).ready(function () {
 						}
 						formData.append('msg', emailContent);
 						formData.append('forecastId', forecastId);
+						//if(customerImgList.length > 0){
+							//formData.append('img', customerImgList);
+						//}
 
 						fetch('/wp-admin/admin-ajax.php', {
 								method: 'POST',
@@ -95,7 +105,6 @@ jQuery(document).ready(function () {
 								return response.json();
 						})
 						.then(function(data) {
-								hideLoading();
 								if (data && data.success) {
 									location.reload();
 								} else {
