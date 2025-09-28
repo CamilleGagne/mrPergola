@@ -1,0 +1,254 @@
+<form class="mrpergola-custom-form"  id='new-forecast-form' style="max-width:900px">
+    
+<div class="mrpergola-form-section">
+  <h2>Customer Info</h2>
+
+  <div class="mrpergola-form-columns">
+    <!-- Column 1 -->
+    <div class="mrpergola-form-column">
+      <div class="mrpergola-form-group mb-8">
+        <label for="first_name">First Name:</label>
+        <input type="text" id="first_name" name="first_name" placeholder="First Name">
+      </div>
+
+      <div class="mrpergola-form-group mb-8">
+        <label for="last_name">Last Name:</label>
+        <input type="text" id="last_name" name="last_name" placeholder="Last Name">
+      </div>
+
+      <div class="mrpergola-form-group mb-8">
+        <label for="email">Email:</label>
+        <input type="email" id="forecast_email" name="email" placeholder="Email">
+      </div>
+    </div>
+
+    <!-- Column 2 -->
+    <div class="mrpergola-form-column">
+      <div class="mrpergola-form-group mb-8">
+        <label for="phone_num">Phone #:</label>
+        <input type="tel" id="forecast_phone_num" name="forecast_phone_num" pattern="^\d{3}-\d{3}-\d{4}$" placeholder="514 555-5555">
+      </div>
+
+      <div class="mrpergola-form-group mb-8">
+        <label for="postal_code">Postal Code:</label>
+        <input type="text" id="forecast_postal_code" name="postal_code" placeholder="Postal Code">
+      </div>
+    </div>
+  </div>
+</div>
+  <!-- Pergola Section -->
+  <div class="mrpergola-form-section">
+    <h2>Pergola</h2>
+
+    <div class="mrpergola-form-columns"> 
+    <!-- Column 1 --> 
+        <div class="mrpergola-form-column"> 
+         <!-- Due Date -->
+        <div class="mrpergola-form-group due-date mb-8">
+          <label for="due_date">Due Date:</label>
+          <input type="date" id="due_date" name="due_date">
+        </div>     
+        
+       <!-- Model -->
+        <div class="mrpergola-form-group mb-8">
+          <label for="forecast_model">Model: </label>
+          <select id="forecast_model" name="forecast_model">
+            <option value="" disabled selected>- Select -</option>
+            <option value="3S">3S</option>
+            <option value="4S">4S</option>
+            <option value="Modern">Modern</option>
+            <option value="SF">SF</option>
+          </select>
+        </div>
+        <!-- Type -->
+         <div class="mrpergola-form-group">
+          <label for="forecast_model_type">Type: </label>
+          <select id="forecast_model_type" name="forecast_model_type">
+            <option value="" disabled selected>- Select -</option>
+            <option value="Free">Free</option>
+            <option value="Wall">Wall</option>
+            <option value="None">None</option>
+          </select>
+        </div>
+        
+        <h3 style="margin-top:45px">Frame</h3>
+        <!-- Frame --> 
+        <div  class="mrpergola-form-group mb-8"> 
+            <label for="frame_width">Width:</label> 
+            <select id="frame_width_unit" name="frame_width_unit"> 
+                <option value="" disabled selected>- Select -</option> 
+                <option value="8">8'</option> 
+                <option value="10">10'</option> 
+                <option value="12">12'</option> 
+                <option value="14">14'</option> 
+                <option value="16">16'</option> 
+                <option value="18">18'</option> 
+                <option value="20">20'</option> 
+                <option value="22">22'</option> 
+                <option value="24">24'</option> 
+                <option value="custom">Custom</option> 
+            </select> 
+            <input class="hidden" type="text" id="custom_frame_width"  name="width" > 
+        </div> 
+        <div class="mrpergola-form-group mb-5"> 
+            <label for="frame_depth">Depth:</label> 
+            <select id="frame_depth_unit" name="frame_depth_unit"> 
+                <option value="" disabled selected>- Select -</option> 
+                <option value="8">8'</option> 
+                <option value="10">10'</option> 
+                <option value="12">12'</option> 
+                <option value="14">14'</option> 
+                <option value="16">16'</option> 
+                <option value="18">18'</option> 
+                <option value="20">20'</option> 
+                <option value="22">22'</option> 
+                <option value="24">24'</option> 
+                <option value="custom">Custom</option> 
+                </select> 
+            <input class="hidden" type="text" id="custom_frame_depth" name="depth"> 
+        </div> 
+
+        <!-- Subframe -->
+        <h3 style="margin-top:45px">Subframe</h3>
+         <div class="mrpergola-form-group mb-8" style="display:flex; gap:10px; align-items:center;">
+          <label for="subframe_length">Length:</label>
+          <select id="subframe_length_unit" name="subframe_length_unit">
+            <option value="" disabled selected>- Select -</option>
+            <option value="9'2">9'2</option>
+            <option value="11'2">11'2</option>
+            <option value="13'2">13'2</option>
+            <option value="15'2">15'2</option>
+            <option value="17'2">17'2</option>
+            <option value="19'2">19'2</option>
+            <option value="21'2">21'2</option>
+            <option value="23'2">23'2</option>
+            <option value="25'2">25'2</option>
+            <option value="custom">Custom</option>
+          </select>
+         <input class="hidden" type="text" id="custom_subframe_length" name="subSize">
+        </div>
+        <div class="mrpergola-form-group mb-5">
+          <label for="subframe_qty">Quantity:</label>
+          <select id="subframe_qty_unit" name="subframe_qty_unit">
+            <option value="" disabled selected>- Select -</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="custom">Custom</option>
+          </select>
+         <input class="hidden" type="text" id="custom_subframe_qty" name="subQty">
+        </div>  
+          
+        <!-- Louver -->
+        <h3 style="margin-top:45px">Louver</h3>
+        <div class="mrpergola-form-group mb-8">
+          <label for="louver_length">Length:</label>
+          <input type="text" id="louver_length" name="louver_length">
+        </div>
+        <div class="mrpergola-form-group">
+          <label for="louver_qty">Depth:</label>
+          <input type="text" id="louver_qty" name="louver_qty">
+        </div>
+          
+         <!-- Posts -->
+         <h3 style="margin-top:45px">Post</h3>
+        <div class="mrpergola-form-group mb-8">
+          <label for="post_length">Length:</label>
+          <select id="post_length_unit" name="post_length_unit">
+            <option value="" disabled selected>- Select -</option>
+            <option value="7'5">7'5</option>
+            <option value="8">8</option>
+            <option value="10'5">10'5</option>
+            <option value="12">12</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input class="hidden" type="text" id="custom_post_length" name="postSize">
+        </div>
+        <div class="mrpergola-form-group">
+          <label for="post_qty">Quantity:</label>
+          <select id="post_qty_unit" name="post_qty_unit">
+            <option value="" disabled selected>- Select -</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input  class="hidden" type="text" id="custom_post_qty" name="postQty">
+        </div>  
+      </div>
+
+      <!-- Column 2 -->
+      <div class="mrpergola-form-column">
+        <!-- Hidden field to match the space -->
+        <div style="visibility:hidden" class="mrpergola-form-group due-date mb-8">
+          <label></label>
+          <input  type="date">
+        </div>     
+        <div style="visibility:hidden" class="mrpergola-form-group mb-8">
+          <label ></label>
+          <select ></select>
+        </div>
+         <div style="visibility:hidden" class="mrpergola-form-group">
+          <label ></label>
+          <select ></select>
+        </div>
+        
+         <!-- Soldiers -->  
+        <h3>Soldiers</h3>
+        <div class="mrpergola-form-group mb-5">
+          <label for="soldier">Amount: </label>
+          <input type="number" id="forecast_soldier" name="forecast_soldier">
+        </div>
+         <div style="visibility:hidden" class="mrpergola-form-group">
+          <label ></label>
+          <select ></select>
+        </div>
+       
+        <!-- Color -->
+        <h3 class="mb-8" style="margin-top:45px">Options</h3>
+        <div class="mrpergola-form-group">
+          <label for="color">Color:</label>
+          <select id="forecast_color" name="color">
+            <option value="" disabled selected>- Select -</option>
+            <option value="Black">Black</option>
+            <option value="White">White</option>
+            <option value="Grey">Grey</option>
+            <option value="Mixed">Mixed</option>
+          </select>
+        </div>
+        
+        <!-- Extras -->
+        <div class="mrpergola-form-group" style="margin-left:15px">
+          <label for="extra">Extras:</label>
+          <div class="checkboxes">
+            <label><input type="checkbox" id="forecast_lights" value = "lights" name="lights"><span>Lights</span></label>
+            <label><input type="checkbox" id="forecast_privacy_screen" value="privacy_screen" name="privacy_screen"><span>Privacy Screen</span></label>
+            <label><input type="checkbox" value = "elec_mec" id="forecast_elec_mec" name="elec_mec"><span>Elec. Mec.</span></label>
+            <label><input type="checkbox" id="forecast_other" value="other" name="other"><span>Other</span></label>
+          </div>
+        </div>
+        
+         <!-- Documents -->
+       <div class="mrpergola-form-group mb-8">
+          <label for="customer_images">Docs :</label>
+        
+          <!-- Icône cliquable -->
+          <span id="file-trigger" 
+                style="cursor:pointer; font-size:22px;" 
+                title="Upload Document">📁</span>
+        
+          <!-- Input caché -->
+          <input type="file" id="customer_images" 
+                 name="customer_image[]" 
+                 accept="image/*" multiple 
+                 style="display:none;">
+        
+          <!-- Zone d’affichage des fichiers -->
+          <div id="file-list" style="margin-top:10px;"></div>
+        </div>
+    </div>
+  </div>
+ 
+  <button class="mrpergola-submit-btn" id="forecast_save_btn">Save</button>
+</form>
