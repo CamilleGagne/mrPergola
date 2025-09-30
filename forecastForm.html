@@ -33,6 +33,14 @@
         <label for="postal_code">Postal Code:</label>
         <input type="text" id="forecast_postal_code" name="postal_code" placeholder="Postal Code">
       </div>
+       <div class="mrpergola-form-group mb-8">
+        <label for="postal_code">Language:</label>
+         <select id="forecast_language" name="language">
+
+            <option value="en">English</option>
+            <option value="fr">French</option>
+          </select>
+      </div>
     </div>
   </div>
 </div>
@@ -195,9 +203,9 @@
         </div>
         
          <!-- Soldiers -->  
-        <h3>Soldiers</h3>
+        <h3 style="visibility:hidden">Soldiers</h3>
         <div class="mrpergola-form-group mb-5">
-          <label for="soldier">Amount: </label>
+          <h3 for="soldier" style="margin-top:10px !important;">Soldiers: </h3>
           <input type="number" id="forecast_soldier" name="forecast_soldier">
         </div>
          <div style="visibility:hidden" class="mrpergola-form-group">
@@ -215,40 +223,92 @@
             <option value="White">White</option>
             <option value="Grey">Grey</option>
             <option value="Mixed">Mixed</option>
+            <option value="other">Other</option>
           </select>
+        </div>
+        
+         <div class="mrpergola-form-group mb-5">
+          <label for="custom_color"> </label>
+          <input class='hidden' id="custom_color" name="custom_color">
         </div>
         
         <!-- Extras -->
         <div class="mrpergola-form-group" style="margin-left:15px">
           <label for="extra">Extras:</label>
           <div class="checkboxes">
+            <label><input type="checkbox" value = "curtains" id="forecast_curtains" name="curtains"><span>Curtains</span></label>
+          <label><input type="checkbox" value = "elec_mec" id="forecast_elec_mec" name="elec_mec"><span>Electrical Mecanism</span></label>
+                 <label><input type="checkbox" value = "elec_screen" id="forecast_elec_screen" name="elec_screen"><span>Electric Screen
+                 </span></label>
+               <label><input type="checkbox" value = "heaters" id="forecast_heaters" name="heaters"><span>Heaters
+            </span></label>
             <label><input type="checkbox" id="forecast_lights" value = "lights" name="lights"><span>Lights</span></label>
-            <label><input type="checkbox" id="forecast_privacy_screen" value="privacy_screen" name="privacy_screen"><span>Privacy Screen</span></label>
-            <label><input type="checkbox" value = "elec_mec" id="forecast_elec_mec" name="elec_mec"><span>Elec. Mec.</span></label>
-            <label><input type="checkbox" id="forecast_other" value="other" name="other"><span>Other</span></label>
+            <label><input type="checkbox" id="forecast_privacy_slats" value="privacy_slats" name="privacy_slats"><span>Privacy Slats</span></label>
+            <label><input type="checkbox" id="forecast_options_other" value="other" name="other"><span>Other</span></label>
           </div>
         </div>
         
-         <!-- Documents -->
-       <div class="mrpergola-form-group mb-8">
-          <label for="customer_images">Docs :</label>
-        
-          <!-- Icône cliquable -->
-          <span id="file-trigger" 
-                style="cursor:pointer; font-size:22px;" 
-                title="Upload Document">📁</span>
-        
-          <!-- Input caché -->
-          <input type="file" id="customer_images" 
-                 name="customer_image[]" 
-                 accept="image/*" multiple 
-                 style="display:none;">
-        
-          <!-- Zone d’affichage des fichiers -->
-          <div id="file-list" style="margin-top:10px;"></div>
+        <div class="mrpergola-form-group mb-5 hidden">
+          <label for="custom_extra"> </label>
+          <input class="hidden" id="custom_extra" name="custom_extra">
         </div>
+     </div>
+    </div>
+    <h2>Documents</h2>
+    <div class="mrpergola-form-columns"> 
+    <!-- Column 1 for documents --> 
+    <div class="mrpergola-form-column"> 
+      <div class="mrpergola-form-group mb-8" style="display:flex; flex-direction:column; gap:6px;">
+        
+        <!-- Label and clickable icon -->
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label for="customer_docs" style="width:120px; min-width:120px;">Production Docs :</label>
+          
+          <!-- Clickable icon -->
+          <span id="doc-trigger" style="cursor:pointer; font-size:22px;" title="Upload Document">
+            <i class="fas fa-folder-plus"></i>
+          </span>
+        </div>
+        
+        <!-- Hidden input -->
+        <input type="file" id="customer_docs" 
+               name="customer_docs[]" 
+               accept="image/*" multiple 
+               style="display:none;">
+        
+        <!-- File list appears here, under label+icon -->
+        <div id="file-list" style="margin-top:6px;"></div>
+        
+      </div>
+    </div>
+        
+    <!-- Column 2 for images -->
+<div class="mrpergola-form-column"> 
+  <div class="mrpergola-form-group mb-8" style="display:flex; flex-direction:column; gap:6px;">
+    
+    <!-- Label + clickable icon -->
+    <div style="display:flex; align-items:center; gap:8px;">
+      <label for="customer_images">Site Images :</label>
+      
+      <!-- Clickable icon -->
+      <span id="image-trigger" style="cursor:pointer; font-size:22px;" title="Upload Images">
+        <i class="fas fa-image"></i>
+      </span>
+    </div>
+    
+    <!-- Hidden file input -->
+    <input type="file" id="customer_images" 
+           name="customer_image[]" 
+           accept="image/*" multiple 
+           style="display:none;">
+    
+    <!-- File list appears here, under label+icon -->
+    <div id="image-list" style="margin-top:6px;"></div>
+    
+  </div> 
+</div> 
+     
     </div>
   </div>
- 
   <button class="mrpergola-submit-btn" id="forecast_save_btn">Save</button>
 </form>
