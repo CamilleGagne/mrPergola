@@ -20,11 +20,18 @@ document.addEventListener('DOMContentLoaded', function () {
 	var customPostQty = document.querySelector('#custom_post_qty');
 	var customPostSize = document.querySelector('#custom_post_length');			
 	var modelField = document.querySelector('#forecast_model');	
+	var color = document.querySelector('#forecast_color');	
+	var customColor = document.querySelector('#custom_color');	
+	var options = document.querySelector('#forecast_options_other');	
+	var customOptions = document.querySelector('#custom_extra');	
 	var isModern = false;
 	var fieldToDisableList = [widthField, depthField, louverSizeField, louverQtyField, soldiersField, subframeSizeField, subframeQtyField, postSizeField, postQtyField];
-	var trigger = document.getElementById('file-trigger');
-	var input = document.getElementById('customer_images');
+	var docTrigger = document.getElementById('doc-trigger');
+	var imageTrigger = document.getElementById('image-trigger');
+	var docInput = document.getElementById('customer_docs');
+	var imageInput = document.getElementById('customer_images');
 	var fileList = document.getElementById('file-list');
+	var imageList = document.getElementById('image-list');
 	var saveBtn = document.getElementById('forecast_save_btn');
 	var successContainer = document.getElementById('success_message');
 	var errorContainer = document.getElementById('error_message');
@@ -36,53 +43,115 @@ document.addEventListener('DOMContentLoaded', function () {
 	var email = document.getElementById('forecast_email');
 	var postalCode = document.getElementById('forecast_postal_code');
 	var phoneNum = document.getElementById('forecast_phone_num');
+	var language = document.getElementById('forecast_language');
 
-// ===================== FILE PICKER LOGIC ===================== 
-	// Open filepicker
-	trigger.addEventListener('click', function() {
-			if (input) {
-					input.click();
-			}
-	});
-
-	
-	input.addEventListener('change', function() {
-    fileList.innerHTML = '';
-
-    if (input.files.length === 0) {
-        fileList.textContent = 'No file selected';
-        return;
-    }
-
-    var files = Array.from(input.files);
-    files.forEach((file, index) => {
-        var div = document.createElement('div');
+function addFilesToUi(files, list) {
+    files = Array.from(files);
+    files.forEach((file) => {
+        // Container for each file
+        const div = document.createElement('div');
         div.style.display = 'flex';
         div.style.alignItems = 'center';
-        div.style.marginBottom = '4px';
+        div.style.justifyContent = 'space-between';
+        div.style.padding = '6px 10px';
+        div.style.marginBottom = '6px';
+        div.style.border = '1px solid #ddd';
+        div.style.borderRadius = '6px';
+        div.style.backgroundColor = '#fafafa';
+        div.style.fontSize = '14px';
 
-        var nameSpan = document.createElement('span');
-        nameSpan.textContent = file.name;
-        nameSpan.style.flex = '1';
+        // Thumbnail (if image)
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.width = '60px';
+                img.style.height = '60px';
+                img.style.objectFit = 'cover';
+                img.style.marginRight = '8px';
+                div.insertBefore(img, div.firstChild);
+            };
+            reader.readAsDataURL(file);
+        }
 
-        var removeBtn = document.createElement('button');
-        removeBtn.textContent = '❌';
-        removeBtn.style.color = 'red';
+        // Editable file name
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = file.name;
+        nameInput.style.flex = '1';
+        nameInput.style.marginRight = '8px';
+        nameInput.style.fontSize = '14px';
+        nameInput.style.border = '1px solid #ccc';
+        nameInput.style.borderRadius = '4px';
+        nameInput.style.padding = '2px 6px';
+
+        // Update file object with new name
+        file.newName = nameInput.value;
+        nameInput.addEventListener('input', () => {
+            file.newName = nameInput.value;
+        });
+
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.innerHTML = '✕';
+        removeBtn.style.color = '#fff';
+        removeBtn.style.background = '#e74c3c';
         removeBtn.style.border = 'none';
-        removeBtn.style.background = 'transparent';
+        removeBtn.style.borderRadius = '4px';
         removeBtn.style.cursor = 'pointer';
-        removeBtn.addEventListener('click', function() {
+        removeBtn.style.padding = '2px 6px';
+        removeBtn.style.fontSize = '12px';
+        removeBtn.addEventListener('click', () => {
             div.remove();
-            if (fileList.children.length === 0) {
-                fileList.textContent = 'No file selected';
+            if (list.children.length === 0) {
+                list.textContent = 'No file selected';
             }
         });
 
-        div.appendChild(nameSpan);
+        // Append elements
+        div.appendChild(nameInput);
         div.appendChild(removeBtn);
-        fileList.appendChild(div);
+        list.appendChild(div);
     });
+}
+
+
+	
+// ===================== FILE PICKER LOGIC ===================== 
+	// Open document filepicker
+	docTrigger.addEventListener('click', function() {
+			if (docInput) {
+					docInput.click();
+			}
 	});
+
+	docInput.addEventListener('change', function() {
+    fileList.innerHTML = '';
+
+    if (docInput.files.length === 0) {
+        fileList.textContent = 'No file selected';
+        return;
+    }
+		addFilesToUi(docInput.files, fileList);
+	});
+	
+	imageTrigger.addEventListener('click', function() {
+			if (imageInput) {
+					imageInput.click();
+			}
+	});
+
+	imageInput.addEventListener('change', function() {
+    imageList.innerHTML = '';
+
+    if (imageInput.files.length === 0) {
+        imageList.textContent = 'No file selected';
+        return;
+    }
+		addFilesToUi(imageInput.files, imageList);
+	});
+
 
 // ===================== FORM LOGIC ===================== 
 	//Disable all fields until Model is selected 	
@@ -110,7 +179,6 @@ document.addEventListener('DOMContentLoaded', function () {
 			return parseInt(i[0],0);
 		}
 	}	
-
 
 	/* Qty louvers * subframe Qty */	
 	function calculateSoldiers(){
@@ -305,7 +373,6 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	});
 
-
 	modelType.addEventListener('change', function(){
 		if (modelType.value && modelType.value === 'Free'){
 			postQtyField.value = '4';
@@ -316,6 +383,22 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	});
 
+	color.addEventListener('change', function(){
+		if(color.value && color.value === 'other'){
+			 customColor.classList.remove('hidden');
+		}else{
+			 customColor.classList.add('hidden');
+		}
+	});
+	
+	options.addEventListener('change', function () {
+    if (options.checked) {
+        customOptions.classList.remove('hidden');
+    } else {
+        customOptions.classList.add('hidden');
+    }
+});
+	
 	function setDefaultModel(){
 		if (modelType.value === '- Select -' || modelType.value === 'None' || modelType.value === ''){
 			modelType.value = 'Free';
@@ -341,11 +424,12 @@ document.addEventListener('DOMContentLoaded', function () {
 		 e.preventDefault();
  	
 		var formData = new FormData();
-		
 	 	formData.append('first_name', firstName.value || '');
     formData.append('last_name', lastName.value || '');
     formData.append('email', email.value || '');
     formData.append('postal_code', postalCode.value || '');
+		formData.append('phoneNum', phoneNum.value || '');
+		formData.append('language', language.value || '');
     formData.append('model', modelField.value || '');
     formData.append('modelType', modelType.value || '');
     formData.append('widthField', customWidth.value || widthField.value || '');
@@ -358,8 +442,12 @@ document.addEventListener('DOMContentLoaded', function () {
     formData.append('postSize', customPostSize.value || postSizeField.value || '');
     formData.append('postQty', customPostQty.value || postQtyField.value || '');
     formData.append('date', date.value || '');
-    formData.append('color', color.value || '');
-		formData.append('phoneNum', phoneNum.value || '');
+		
+		if (color.value && color.value === 'other'){
+			formData.append('color', customColor.value || '');
+		}else{
+			formData.append('color', color.value || '');
+		}
 		
 		var customValues = [];
 		[customWidth, customDepth, customSubQty, customSubSize, customPostQty, customPostSize].forEach(function(el) {
@@ -376,13 +464,31 @@ document.addEventListener('DOMContentLoaded', function () {
     for (var i = 0; i < extras.length; i++) {
         formData.append('extras[]', extras[i].value);
     }
-
+		
+		if (options && options.checked && customOptions && customOptions.value) {
+				var values = customOptions.value.split(',');
+				for (var j = 0; j < values.length; j++) {
+						formData.append('extras[]', values[j]);
+				}
+		}
+			
     // Add documents
-    if (input.files.length > 0) {
-        for (var j = 0; j < input.files.length; j++) {
-            formData.append('customer_image[]', input.files[j]);
+    if (docInput.files.length > 0) {
+        for (var l = 0; l < docInput.files.length; l++) {
+            formData.append('customer_docs[]', docInput.files[l]);
         }
 		}
+		
+		 if (imageInput.files.length > 0) {
+        for (var m = 0; m < imageInput.files.length; m++) {
+            formData.append('customer_images[]', imageInput.files[m]);
+        }
+		}
+		
+		for (const [key, value] of formData.entries()) {
+				console.log(key, value);
+		}
+		
 		saveForm(formData, ajaxNonce);
 	});
 	
@@ -407,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function () {
 						successContainer.classList.remove('hidden');
 					}
 					 setTimeout(function() {
-							location.reload(); // recharge la page après 3 secondes
+							location.reload(); 
 					}, 3000);
 				} else {
 					if (errorContainer){
