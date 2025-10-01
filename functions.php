@@ -2407,6 +2407,10 @@ function send_team_notification_email() {
 
     $emailNote = isset($_POST['msg']) ? sanitize_textarea_field($_POST['msg']) : '';
     $forecastId = isset($_POST['forecastId']) ? intval($_POST['forecastId']) : 0;
+	//$images = isset($_POST['img']) ? json_decode($_POST['img'], true) : [];
+	$rawImages = isset($_POST['img']) ? $_POST['img'] : '';
+	$images = json_decode(stripslashes($rawImages), true);
+	
     if (!$forecastId) {
         wp_send_json_error('No order detected.');
     }
@@ -2466,14 +2470,15 @@ function send_team_notification_email() {
     if (!empty($emailNote)) {
         $body .= '<div><span>Note:</span> ' . htmlspecialchars($emailNote) . '</div>';
     }
-
-    $images = json_decode($order['image_url']);
-    if ($images && is_array($images)) {
-        foreach ($images as $img) {
-            $body .= '<img src="' . esc_url($img) . '" alt="Order Image">';
-        }
-    }
-
+	
+	if (!empty($images)) {
+		foreach ($images as $item) {
+			if (isset($item['url'])) {
+				$url = esc_url($item['url']);
+				$body .= '<img src="' . $url . '" alt="Order Image">';
+			}
+		}
+	}
     $body .= '</body></html>';
 
     add_filter('wp_mail_content_type', function() { return 'text/html'; });
