@@ -1966,9 +1966,11 @@ function save_client_order() {
 
     $decoded = isset($_POST['data']) ? json_decode(stripslashes($_POST['data']), true) : [];
 	$itemDeletedDocs = isset($_POST['deleted_docs']) ? json_decode(stripslashes($_POST['deleted_docs']), true) : [];	
+	$itemDeletedImages = isset($_POST['deleted_images']) ? json_decode(stripslashes($_POST['deleted_images']), true) : [];	
 
     // Process uploaded files ONCE
     $uploadedDocUrls = handle_docs('customer_docs');
+	$uploadedImagesUrls = handle_docs('customer_images');
 	
     $results = [];
     $messages = [];
@@ -1976,22 +1978,20 @@ function save_client_order() {
 	foreach ($decoded as $index => $item) {
 		$id = $item['id'] ?? 0;
 		
-		   $existingDocUrls = $wpdb->get_var($wpdb->prepare(
+		//DOCS
+		$existingDocUrls = $wpdb->get_var($wpdb->prepare(
             "SELECT doc_url FROM wp_forecast_table WHERE id = %d",
             $id
         ));
 		
         $existingDocUrls = $existingDocUrls ? json_decode($existingDocUrls, true) : [];
 		//$itemDeletedDocs = isset($item['deleted_docs']) ? json_decode($item['deleted_docs'], true) : [];
-
-
 		if (!empty($existingDocUrls)) {
 			$newUrls = array_diff($uploadedDocUrls, $existingDocUrls);
 			$allDocUrls = array_unique(array_merge($existingDocUrls, $newUrls));
 		}else{
 			$allDocUrls = !empty($uploadedDocUrls) ? $uploadedDocUrls : [];
 		}
-
 		// Delete attachments
 		if (!empty($itemDeletedDocs)) {
 			foreach ($itemDeletedDocs as $fileUrl) {
@@ -2003,6 +2003,29 @@ function save_client_order() {
 			$allDocUrls = array_diff($allDocUrls, $itemDeletedDocs);
 		}
 
+		//IMAGES
+		$existingImagesUrls = $wpdb->get_var($wpdb->prepare(
+            "SELECT image_url FROM wp_forecast_table WHERE id = %d",
+            $id
+        ));
+		
+        $existingImagesUrls = $existingImagesUrls ? json_decode($existingImagesUrls, true) : [];
+		if (!empty($existingImagesUrls)) {
+			$newImageUrls = array_diff($uploadedImagesUrls, $existingImagesUrls);
+			$allImagesUrls = array_unique(array_merge($existingImagesUrls, $newImageUrls));
+		}else{
+			$allImagesUrls = !empty($uploadedImagesUrls) ? $uploadedImagesUrls : [];
+		}
+		// Delete attachments
+		if (!empty($itemDeletedImages)) {
+			foreach ($itemDeletedImages as $imgUrl) {
+				$attach_id = attachment_url_to_postid($imgUrl);
+				if ($attach_id) {
+					wp_delete_attachment($attach_id, true);
+				}
+			}
+			$allImagesUrls = array_diff($allImagesUrls, $itemDeletedImages);
+		}	
 		
 		$dueDate = !empty($item['due_date']) ? new DateTime(sanitize_text_field($item['due_date'])) : null;
 		$formattedDueDate = $dueDate ? $dueDate->format('Y-m-d') : null;
@@ -2029,7 +2052,8 @@ function save_client_order() {
 			'info'         => $item["info"] ?? null,
 			'order_status' => $item["order_status"] ?? null,
 			'team_assigned'=> $item["team_selected"] ?? null,
-			'doc_url' => json_encode($allDocUrls)
+			'doc_url' => json_encode($allDocUrls),
+			'image_url' => json_encode($allImagesUrls)
 		];
 
 		$fields = array_filter($fields, function($v) { return $v !== null; });
@@ -2057,7 +2081,7 @@ function save_client_order() {
 	// Send back everything for troubleshooting
 	wp_send_json_success([
 		"payload_received" => $decoded,
-		"update_results" => [], // can populate if needed
+		"update_results" => [], 
 		"troubleshooting" => $response_messages
 	]);
 }
