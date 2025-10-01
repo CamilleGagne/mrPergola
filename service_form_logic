@@ -1,0 +1,66 @@
+<script>		
+document.addEventListener('DOMContentLoaded', function () {
+var firstName = document.querySelector('[name="form_fields[fixlist_name]"]');
+var lastName = document.querySelector('[name="form_fields[fixlist_last_name]"]');
+var phoneNum = document.querySelector('[name="form_fields[fixlist_phone_number]"]');
+var postalCode = document.querySelector('[name="form_fields[fixlist_postal_code]"]');
+var customerId = document.querySelector('[name="form_fields[fixlist_customer_id]"]');
+var originalData;	
+	var id = getIdFromUrl();
+	if (id){
+		loadCustomerData(id);
+	}
+	
+	function populatePage(data){
+		firstName.value = data.first_name ? data.first_name : '';
+		lastName.value = data.last_name ? data.last_name : '';
+		phoneNum.value = data.phone_number ? data.phone_number : '';
+		postalCode.value = data.postal_code ? data.postal_code : '';
+}	
+	function loadCustomerData(id){
+		customerId.value = id ? id : 0;
+    showLoading();
+
+    fetch('/wp-json/myplugin/v1/customer/' + encodeURIComponent(id), {
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(function(response) {
+        if (response.status === 404) {
+            hideLoading();
+            alert("No profile found");
+            return null;
+        }
+        if (!response.ok) {
+            hideLoading();
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(function(data){
+        if (!data) {return;}
+        originalData = JSON.parse(JSON.stringify(data));
+        populatePage(originalData);
+        hideLoading();
+    })
+    .catch(function(err){
+        hideLoading();
+        alert('Error loading profile:', err);
+    });
+}	
+	
+	
+});	
+function getIdFromUrl(){
+  var query = window.location.search.substring(1); 
+	var vars = query.split('&');
+	for (var i = 0; i < vars.length; i++) {
+		var pair = vars[i].split('=');
+		if (pair[0] === 'id') {
+			return decodeURIComponent(pair[1]);
+		}
+	}
+	return null;
+}
+
+	
+</script>	
