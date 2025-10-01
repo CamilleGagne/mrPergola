@@ -1,9 +1,12 @@
 <script>	
+var allDocs = [];
+var deletedDocs = []; 
 var originalData;
 var data;
 var orderNotification;
 var successContainer = document.getElementById('success_message');
 var errorContainer = document.getElementById('error_message');
+var serviceBtn = document.getElementById('create_service_btn');
 /*Customer Profile*/	
 var title = document.getElementById('customer_profile_name');
 var first_name = document.getElementById('customer_first_name');
@@ -11,6 +14,7 @@ var last_name = document.getElementById('customer_last_name');
 var email = document.getElementById('customer_email');
 var postal_code = document.getElementById('customer_postal_code');
 var phone_number = document.getElementById('customer_phone_number');
+var language = document.getElementById('client_language');
 var saveProfilBtn = document.getElementById('customer_info_save_btn');
 /*Orders*/
 var forecastTableContainer = document.getElementById('customer_forecast_table');	
@@ -19,14 +23,34 @@ var notifyTeamBtn = document.getElementById('notify_team_btn');
 var notifyCustomerBtn = document.getElementById('status_update_btn');
 var teamSelected = document.getElementById('team_selection');
 var orderStatus = document.getElementById('order_status');
-var trigger = document.getElementById('customer_file_trigger');
-var input = document.getElementById('customer_profile_images');
+var docTrigger = document.getElementById('customer_file_trigger');
+var docInput = document.getElementById('customer_profile_docs');
 var fileList = document.getElementById('customer_file_list');
+var imageTrigger = document.getElementById('customer_image_trigger');
+var imageInput = document.getElementById('customer_profile_images');
+var imageList = document.getElementById('customer_image_list');
 /*Notes*/	
 var addNoteBtn = document.getElementById('customer_profile_add_note_btn');
-	
-	
+
+
 document.addEventListener('DOMContentLoaded', function () {
+	const id = getIdFromUrl();
+	if (id){
+		loadCustomerData(id);
+	}else{
+		alert("No Id retrieved");
+	}	
+	
+	//Dynamically add id to button's url
+		if(serviceBtn){
+			if (id) {
+				serviceBtn.href = 'https://mrpergola.com/fixlist-form/?id=' + id;
+			}else{
+				serviceBtn.href = 'https://mrpergola.com/fixlist-form';
+			}
+		}
+ 
+	
 	teamSelected.addEventListener('change', function(){
 		if (teamSelected.value && teamSelected.value !== ''){
 			notifyTeamBtn.disabled = false;
@@ -76,65 +100,166 @@ document.addEventListener('DOMContentLoaded', function () {
 		notifyTeamBtn.disabled = true;
 	}
 	
-	var id = getIdFromUrl();
-	if (id){
-		loadCustomerData(id);
-	}else{
-		alert("No Id retrieved");
-	}
-	
-	trigger.addEventListener('click', function() {
-			if (input) {
-					input.click();
+	docTrigger.addEventListener('click', function() {
+			if (docInput) {
+					docInput.click();
 			}
 	});
 
-	input.addEventListener('change', function() {
-    var files = Array.from(input.files);
-    if (input.files.length === 0) {
+	docInput.addEventListener('change', function() {
+    const files = Array.from(docInput.files);
+
+    if (files.length === 0) {
         fileList.textContent = 'No file selected';
-				fileList.style.setProperty('padding-top', '7px', 'important');
+        fileList.style.setProperty('padding-top', '7px', 'important');
         return;
     }
-		
-		 if (fileList.textContent === 'No file selected') {
+
+    if (fileList.textContent === 'No file selected') {
         fileList.textContent = '';
     }
-		
-    files.forEach(function(file, index) {
-        var div = document.createElement('div');
-        div.style.display = 'flex';
-        div.style.alignItems = 'center';
-        div.style.marginBottom = '4px';
 
-        var nameSpan = document.createElement('span');
-        nameSpan.textContent = file.name;
-        nameSpan.style.flex = '1';
+		 files.forEach(file => {
+        addFileItem(file, fileList);
+        allDocs.push(file); // Track File object
+    });
+    activateTab();
+	});
 
-        var removeBtn = document.createElement('button');
-        removeBtn.textContent = '❌';
-        removeBtn.style.color = 'red';
-        removeBtn.style.border = 'none';
-        removeBtn.style.background = 'transparent';
-        removeBtn.style.cursor = 'pointer';
-        removeBtn.addEventListener('click', function() {
-            div.remove();
+	
+	imageTrigger.addEventListener('click', function() {
+			if (imageInput) {
+					imageInput.click();
+			}
+	});
 
-            if (fileList.children.length === 0) {
-                fileList.textContent = 'No file selected';
-							  fileList.style.setProperty('padding-top', '7px', 'important');
-            }
+	imageInput.addEventListener('change', function() {
+    const files = Array.from(imageInput.files);
+
+    if (files.length === 0) {
+        imageList.textContent = 'No file selected';
+        imageList.style.setProperty('padding-top', '7px', 'important');
+        return;
+    }
+
+    if (imageList.textContent === 'No file selected') {
+        imageList.textContent = '';
+    }
+
+    files.forEach(file => addFileItem(file, imageList));
+    activateTab();
+	});
+});
+	
+	
+	
+function addFileItem(fileOrUrl, container, isUrl = false) {
+    const div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.justifyContent = 'space-between';
+    div.style.padding = '6px 10px';
+    div.style.marginBottom = '6px';
+    div.style.border = '1px solid #ddd';
+    div.style.borderRadius = '6px';
+    div.style.backgroundColor = '#fafafa';
+    div.style.fontSize = '14px';
+
+    let nameInput;
+
+    if (isUrl) {
+        nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = fileOrUrl.split('/').pop();
+        nameInput.readOnly = true;
+        nameInput.style.flex = '1';
+        nameInput.style.marginRight = '8px';
+        nameInput.style.fontSize = '14px';
+        nameInput.style.border = '1px solid #ccc';
+        nameInput.style.borderRadius = '4px';
+        nameInput.style.padding = '2px 6px';
+        nameInput.style.backgroundColor = '#eaeaea';
+        nameInput.style.cursor = 'pointer';
+
+        // Open URL on click
+        nameInput.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(fileOrUrl, '_blank', 'noopener,noreferrer');
         });
 
-        div.appendChild(nameSpan);
-        div.appendChild(removeBtn);
-        fileList.appendChild(div);
+        // Thumbnail for image URLs
+        if (/\.(jpeg|jpg|gif|png|webp|svg)$/i.test(fileOrUrl)) {
+            const img = document.createElement('img');
+            img.src = fileOrUrl;
+            img.style.width = '60px';
+            img.style.height = '60px';
+            img.style.objectFit = 'cover';
+            img.style.marginRight = '8px';
+            div.insertBefore(img, div.firstChild);
+        }
+
+    } else {
+        const file = fileOrUrl;
+
+        // Thumbnail for image files
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.width = '60px';
+                img.style.height = '60px';
+                img.style.objectFit = 'cover';
+                img.style.marginRight = '8px';
+                div.insertBefore(img, div.firstChild);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = file.name;
+        nameInput.style.flex = '1';
+        nameInput.style.marginRight = '8px';
+        nameInput.style.fontSize = '14px';
+        nameInput.style.border = '1px solid #ccc';
+        nameInput.style.borderRadius = '4px';
+        nameInput.style.padding = '2px 6px';
+
+        // Update file object with new name
+        file.newName = nameInput.value;
+        nameInput.addEventListener('input', () => {
+            file.newName = nameInput.value;
+        });
+    }
+
+    // Remove button
+    const removeBtn = document.createElement('button');
+    removeBtn.innerHTML = '✕';
+    removeBtn.style.color = '#fff';
+    removeBtn.style.background = '#e74c3c';
+    removeBtn.style.border = 'none';
+    removeBtn.style.borderRadius = '4px';
+    removeBtn.style.cursor = 'pointer';
+    removeBtn.style.padding = '2px 6px';
+    removeBtn.style.fontSize = '12px';
+    removeBtn.addEventListener('click', () => {
+        div.remove();
+			
+				if (typeof fileOrUrl === 'string') {
+					deletedDocs.push(fileOrUrl);
+				}
+        if (container.children.length === 0) {
+            container.textContent = 'No file selected';
+            container.style.setProperty('padding-top', '7px', 'important');
+        }
     });
-	});
-		
-	activateTab();
+
+    div.appendChild(nameInput);
+    div.appendChild(removeBtn);
+    container.appendChild(div);
+}
 	
-});
 	
 function saveActiveTab(){
 		var activeTab = document.querySelector('.e-n-tab-title[aria-selected="true"]');
@@ -189,7 +314,9 @@ function notifyCustomer(){
 		var newData = {
 			'orderStatus':orderStatus.value,
 			'forecastId':f.id,
-			'email':originalData.email
+			'email':originalData.email,
+			'customerName':originalData.first_name,
+			'language':language ? language.value : 'en'
 		};
 
 		// Send the AJAX request
@@ -208,9 +335,7 @@ function notifyCustomer(){
 			// Parse response as JSON
 		}).then(function(data) {
 			if (data && data.success) {
-				//location.reload();
 				getActiveTabAndReload();
-				//alert('Customer was successfully sent an email!');
 			} else {
 				hideLoading();
 				alert('Error while saving your table: ' + data.data);
@@ -234,6 +359,7 @@ function populatePage(data){
 	email.value = data.email || '';
 	postal_code.value = data.postal_code || '';
 	phone_number.value = data.phone_number || '';
+	language.value = data.language || '';
 	
 	//Right now we assume first forecast
 	if (data.forecasts.length > 0){
@@ -245,13 +371,23 @@ function populatePage(data){
 		orderNotification = data.forecasts[0].order_status_notification ? data.forecasts[0].order_status_notification : '';
 
 		if (data.forecasts[0].image_url){
-				loadDocs(data.forecasts[0].image_url);
+				loadDocs(data.forecasts[0].image_url, imageList);
+		}	else{
+			if (imageList) {
+        imageList.textContent = 'No images selected';
+				imageList.style.setProperty('padding-top', '7px', 'important');
+    	}
+		}
+		
+		if (data.forecasts[0].doc_url){
+				loadDocs(data.forecasts[0].doc_url, fileList);
 		}	else{
 			if (fileList) {
         fileList.textContent = 'No file selected';
 				fileList.style.setProperty('padding-top', '7px', 'important');
     	}
 		}
+		
 		renderForecastTable(data);
 	}else{
 		forecastTableContainer.innerHTML = 'No data found';
@@ -263,71 +399,23 @@ function populatePage(data){
 	hideLoading();	
 }
 
-// Load existing URLs into the file list
-function loadDocs(docs) {
-    if (!Array.isArray(docs)) {
-        docs = [];
+// Load existing URLs into a file list container
+function loadDocs(docs, container) {
+    if (!Array.isArray(docs)) docs = [];
+
+    container.textContent = '';
+    container.style.setProperty('padding-top', '7px', 'important');
+
+    if (docs.length === 0) {
+        container.textContent = 'No file selected';
+        return;
     }
 
-    fileList.textContent = '';
-		fileList.style.setProperty('padding-top', '7px', 'important');
-
-    if (docs.length > 0) {
-        docs.forEach(function (url) {
-            fileList.appendChild(createFileItem(url, function () {
-                if (fileList.children.length === 0) {
-                    fileList.textContent = 'No file selected';
-									  fileList.style.setProperty('padding-top', '7px', 'important');
-                }
-            }, true)); 
-        });
-    } else {
-        fileList.textContent = 'No file selected';
-				fileList.style.setProperty('padding-top', '7px', 'important');
-    }
-}
-	
-// Helper to create a list item for a file or URL
-function createFileItem(fileOrUrl, onRemove, isUrl) {
-   if (typeof isUrl === 'undefined') {
-        isUrl = false;
-    }  
-	
-		var div = document.createElement('div');
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.marginBottom = '4px';
-
-    var nameElement;
-
-    if (isUrl) {
-        // URL
-        nameElement = document.createElement('a');
-        nameElement.dataset.url = fileOrUrl;
-        nameElement.textContent = fileOrUrl.split('/').pop();
-        nameElement.href = '#';
-        nameElement.style.color = 'blue';
-        nameElement.style.textDecoration = 'underline';
-        nameElement.style.flex = '1';
-    } else {
-        // Local file
-        nameElement = document.createElement('span');
-        nameElement.textContent = fileOrUrl.name;
-        nameElement.dataset.filename = fileOrUrl.name;
-        nameElement.dataset.fileIndex = null; 
-        nameElement.fileObject = fileOrUrl; 
-        nameElement.style.flex = '1';
-    }
-
-    nameElement.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (isUrl) {
-            window.open(nameElement.dataset.url, '_blank', 'noopener,noreferrer');
-        }
-    });
- 
-    div.appendChild(nameElement);
-    return div;
+    docs.forEach(url => addFileItem(url, container, true));
+		docs.forEach(url => {
+			addFileItem(url, fileList, true);
+			allDocs.push({ url }); // Track URL
+	});
 }
 	
 function renderForecastTable(data){
@@ -484,6 +572,10 @@ function isValueDifferent(data, formName){
 		if (email && email.value !== data.email){
 			return true;
 		}
+		
+		if (language && language.value !== data.language){
+			return true;
+		}
 	}else if(formName === 'order'){
 		var forecast = getCheckedRow();
 		
@@ -540,12 +632,13 @@ function getCheckedRow(){
 
 function isImageListDiff(addedImages,currentImageList,savedImageList) {
   //Images we added	
-	if(addedImages && addedImages.length > 0){return true;} 
+	/*if(addedImages && addedImages.length > 0){return true;} 
 	
 	//Images were deleted
 	if (savedImageList.length !== currentImageList.length)  {return true;}
 	
-  return false;
+  return false;*/
+	return true;
 }
 	
 function getActiveTabAndReload(){
@@ -577,6 +670,7 @@ function saveCustomerInfo(){
 			'postal_code':postal_code.value,
 			'email':email.value,
 			'phone_number':phone_number.value,
+			'language':language.value,
 			'id' : originalData.id
 		};
 
@@ -613,6 +707,23 @@ function saveCustomerInfo(){
 		alert('No changes detected.');
 	}
 }
+	
+function collectAllDocs(container) {
+    return Array.from(container.children).map(item => {
+        if (item.dataset.url) {
+            // Existing file (already saved)
+            return { type: 'url', value: item.dataset.url };
+        } else {
+            // New file (from input)
+            const input = item.querySelector('input[type="file"]');
+            if (input && input.files[0]) {
+                return { type: 'file', value: input.files[0] };
+            }
+        }
+        return null;
+    }).filter(Boolean);
+}	
+	
 
 /*Save function for the Orders tab*/
 function saveCustomerOrders(){
@@ -626,14 +737,14 @@ function saveCustomerOrders(){
 	var isDirtyRows = dirtyRows.length > 0;
 	
 	//should be empty is fielpicker was not used
-	var addedImages = document.getElementById('customer_file_list'); 
+	var addedDocs = document.getElementById('customer_file_list'); 
 	//Should have all old and new images
-	var currentImageList = Array.from(fileList.children).map(function(item){
-        var link = item.querySelector('a');
-        return link ? link.dataset.url : item.textContent.trim();
-    });
-	var savedImageList = activeForecast.image_url;
-	var isImageListChange = isImageListDiff(addedImages,currentImageList,savedImageList);  //Check if images were changed
+	var currentDocList = Array.from(fileList.children).map(function(item){
+			var img = item.querySelector('img');
+			return img ? img.src : (item.dataset.url || '');
+	}).filter(Boolean);
+	var savedDocList = activeForecast.doc_url;
+	var isImageListChange = true;//isImageListDiff(addedDocs,currentDocList,savedDocList);  //Check if images were changed
 		
 	if (isChange || isDirtyRows || isImageListChange) 
 	{
@@ -697,31 +808,26 @@ function saveCustomerOrders(){
 		var formData = new FormData();
 		formData.append('_wpnonce', ajaxNonce);
 		formData.append('action', 'save_client_order');
+		 
 		
-		if (isImageListChange){
-			 // Attach new images to save with forecast number
-			if (input.files.length > 0) {
-					for (var k = 0; k < input.files.length; k++) {
-							var file = input.files[k];
-							// Add data-forecast-id attribute to the file input element for each file
-							var forecastId = file.getAttribute ? file.getAttribute('data-forecast-id') : activeForecast.id;
-							formData.append('images[' + forecastId + '][]', file);
-					}
+		allDocs.forEach(item => {
+			if (item instanceof File) {
+					formData.append('customer_docs[]', item);
+			} else if (item.url) {
+					formData.append('customer_docs_urls[]', item.url);
 			}
-			if (forecasts.length>0){
-				var idx = forecasts.findIndex(function(forecast){return forecast.id === activeForecast.id;});
-				if (idx > -1){
-					forecasts[idx].currentImageList = currentImageList;
-				}else{
-					forecasts.push({'id':activeForecast.id, 'image_url':activeForecast.image_url,'currentImageList' : currentImageList});
-				}
-			}else{
-				forecasts.push({'id':activeForecast.id, 'image_url':activeForecast.image_url,'currentImageList' : currentImageList});
-			}
-		
-		}
+		});
+		formData.append('deleted_docs', JSON.stringify(deletedDocs));
+		/*if (docInput.files.length > 0) {
+        for (var l = 0; l < docInput.files.length; l++) {
+            formData.append('customer_docs[]', docInput.files[l]);
+        }
+		}*/
 		
 		formData.append('data', JSON.stringify(forecasts));
+		for (const [key, value] of formData.entries()) {
+    	console.log(key, value);
+		}
 		
 		// Send the AJAX request
 		fetch('/wp-admin/admin-ajax.php', {
