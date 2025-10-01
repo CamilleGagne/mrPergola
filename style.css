@@ -1,3 +1,4 @@
+
 @media screen and (max-width:385px){
 	.filter-gallery-sec .elementor-gallery-title:last-child{
 margin-top:10px;	
@@ -625,6 +626,18 @@ body .mrpergola-form-group .checkboxes {
     vertical-align: middle;            /* align with label text */
 }
 
+
+#customer_file_list,
+#customer_image_list {
+    width: 100% !important;
+}
+
+/* Chaque fichier occupe toute la largeur */
+#customer_file_list > div,
+#customer_image_list > div {
+    width: 100% !important;
+    box-sizing: border-box; /* pour inclure padding + bordure dans les 100% */
+}
 
 .notesTable {
 	border-collapse: collapse;  
