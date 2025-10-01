@@ -412,6 +412,7 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 		$due_date = $fields['fixlist_due_date'];
 		$task_description = $fields['fixlist_description'];
 		$email_to = $fields['fixer_email_list'];
+		//$customerId = $fields['fixlist_customer_id'] ?? null;
 		
 		//Check customer table
 		$customer = $wpdb->get_row($wpdb->prepare("SELECT * FROM wp_custom_customers WHERE postal_code = %s", $fields['fixlist_postal_code']));
