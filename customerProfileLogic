@@ -1,6 +1,8 @@
 <script>	
 var allDocs = [];
-var deletedDocs = []; 
+var deletedDocs = [];
+var allImages = [];
+var deletedImages = [];
 var originalData;
 var data;
 var orderNotification;
@@ -146,7 +148,11 @@ document.addEventListener('DOMContentLoaded', function () {
         imageList.textContent = '';
     }
 
-    files.forEach(file => addFileItem(file, imageList));
+    
+		 files.forEach(file => {
+        addFileItem(file, imageList);
+        allImages.push(file);
+    });
     activateTab();
 	});
 });
@@ -247,7 +253,11 @@ function addFileItem(fileOrUrl, container, isUrl = false) {
         div.remove();
 			
 				if (typeof fileOrUrl === 'string') {
-					deletedDocs.push(fileOrUrl);
+					if(container.id === 'customer_image_list'){
+						deletedImages.push(fileOrUrl);
+					}else{
+						deletedDocs.push(fileOrUrl);
+					}
 				}
         if (container.children.length === 0) {
             container.textContent = 'No file selected';
@@ -371,7 +381,7 @@ function populatePage(data){
 		orderNotification = data.forecasts[0].order_status_notification ? data.forecasts[0].order_status_notification : '';
 
 		if (data.forecasts[0].image_url){
-				loadDocs(data.forecasts[0].image_url, imageList);
+				loadDocs(data.forecasts[0].image_url, imageList, allImages);
 		}	else{
 			if (imageList) {
         imageList.textContent = 'No images selected';
@@ -380,7 +390,7 @@ function populatePage(data){
 		}
 		
 		if (data.forecasts[0].doc_url){
-				loadDocs(data.forecasts[0].doc_url, fileList);
+				loadDocs(data.forecasts[0].doc_url, fileList, allDocs);
 		}	else{
 			if (fileList) {
         fileList.textContent = 'No file selected';
@@ -400,7 +410,7 @@ function populatePage(data){
 }
 
 // Load existing URLs into a file list container
-function loadDocs(docs, container) {
+function loadDocs(docs, container, allFiles) {
     if (!Array.isArray(docs)) docs = [];
 
     container.textContent = '';
@@ -411,10 +421,9 @@ function loadDocs(docs, container) {
         return;
     }
 
-    docs.forEach(url => addFileItem(url, container, true));
 		docs.forEach(url => {
-			addFileItem(url, fileList, true);
-			allDocs.push({ url }); // Track URL
+			addFileItem(url, container, true);
+			allFiles.push({ url }); // Track URL
 	});
 }
 	
@@ -630,15 +639,15 @@ function getCheckedRow(){
 	}
 }	
 
-function isImageListDiff(addedImages,currentImageList,savedImageList) {
-  //Images we added	
-	/*if(addedImages && addedImages.length > 0){return true;} 
+function isImageListDiff() {
+  if (deletedDocs.length >0 || deletedImages.length>0){
+		return true;
+	}
+	if (imageList.children.length > 0 || fileList.children.length> 0){
+		return true;
+	}
 	
-	//Images were deleted
-	if (savedImageList.length !== currentImageList.length)  {return true;}
-	
-  return false;*/
-	return true;
+	return false;
 }
 	
 function getActiveTabAndReload(){
@@ -708,23 +717,6 @@ function saveCustomerInfo(){
 	}
 }
 	
-function collectAllDocs(container) {
-    return Array.from(container.children).map(item => {
-        if (item.dataset.url) {
-            // Existing file (already saved)
-            return { type: 'url', value: item.dataset.url };
-        } else {
-            // New file (from input)
-            const input = item.querySelector('input[type="file"]');
-            if (input && input.files[0]) {
-                return { type: 'file', value: input.files[0] };
-            }
-        }
-        return null;
-    }).filter(Boolean);
-}	
-	
-
 /*Save function for the Orders tab*/
 function saveCustomerOrders(){
 	var forecastTable = document.getElementById('customerTable');
@@ -735,16 +727,8 @@ function saveCustomerOrders(){
 	var isChange = isValueDifferent(originalData, 'order');  //Checks Team and Status
 	var dirtyRows = forecastTable.querySelectorAll('tbody tr.dirty');  //Checks for changes in the table
 	var isDirtyRows = dirtyRows.length > 0;
-	
-	//should be empty is fielpicker was not used
-	var addedDocs = document.getElementById('customer_file_list'); 
-	//Should have all old and new images
-	var currentDocList = Array.from(fileList.children).map(function(item){
-			var img = item.querySelector('img');
-			return img ? img.src : (item.dataset.url || '');
-	}).filter(Boolean);
-	var savedDocList = activeForecast.doc_url;
-	var isImageListChange = true;//isImageListDiff(addedDocs,currentDocList,savedDocList);  //Check if images were changed
+
+	var isImageListChange = isImageListDiff();  //Check if images were changed
 		
 	if (isChange || isDirtyRows || isImageListChange) 
 	{
@@ -805,25 +789,31 @@ function saveCustomerOrders(){
 			}
 		}
 		
+		if (isImageListChange){
+					allDocs.forEach(item => {
+				if (item instanceof File) {
+						formData.append('customer_docs[]', item);
+				} /*else if (item.url) {
+						formData.append('customer_docs_urls[]', item.url);
+				}*/
+			});
+
+			allImages.forEach(item => {
+				if (item instanceof File) {
+						formData.append('customer_images[]', item);
+				} /*else if (item.url) {
+						formData.append('customer_docs_images[]', item.url);
+				}*/
+			});
+
+			formData.append('deleted_docs', JSON.stringify(deletedDocs));
+			formData.append('deleted_images', JSON.stringify(deletedImages));
+		}
+		
 		var formData = new FormData();
 		formData.append('_wpnonce', ajaxNonce);
 		formData.append('action', 'save_client_order');
-		 
-		
-		allDocs.forEach(item => {
-			if (item instanceof File) {
-					formData.append('customer_docs[]', item);
-			} else if (item.url) {
-					formData.append('customer_docs_urls[]', item.url);
-			}
-		});
-		formData.append('deleted_docs', JSON.stringify(deletedDocs));
-		/*if (docInput.files.length > 0) {
-        for (var l = 0; l < docInput.files.length; l++) {
-            formData.append('customer_docs[]', docInput.files[l]);
-        }
-		}*/
-		
+
 		formData.append('data', JSON.stringify(forecasts));
 		for (const [key, value] of formData.entries()) {
     	console.log(key, value);
