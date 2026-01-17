@@ -17,6 +17,7 @@ var email = document.getElementById('customer_email');
 var postal_code = document.getElementById('customer_postal_code');
 var phone_number = document.getElementById('customer_phone_number');
 var language = document.getElementById('client_language');
+var address = document.getElementById('customer_address');
 var saveProfilBtn = document.getElementById('customer_info_save_btn');
 /*Orders*/
 var forecastTableContainer = document.getElementById('customer_forecast_table');	
@@ -147,8 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (imageList.textContent === 'No file selected') {
         imageList.textContent = '';
     }
-
-    
+		
 		 files.forEach(file => {
         addFileItem(file, imageList);
         allImages.push(file);
@@ -156,9 +156,7 @@ document.addEventListener('DOMContentLoaded', function () {
     activateTab();
 	});
 });
-	
-	
-	
+
 function addFileItem(fileOrUrl, container, isUrl = false) {
     const div = document.createElement('div');
     div.style.display = 'flex';
@@ -171,25 +169,33 @@ function addFileItem(fileOrUrl, container, isUrl = false) {
     div.style.backgroundColor = '#fafafa';
     div.style.fontSize = '14px';
 
-    let nameInput;
+    // Checkbox
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.style.marginRight = '8px';
+    checkbox.checked = false; // default unchecked
+    div.appendChild(checkbox);
+
+    // Store the underlying data
+    if (isUrl) {
+        div.dataset.url = fileOrUrl;  // store URL string
+    } else {
+        div.file = fileOrUrl;          // store File object
+    }
+
+    // Name display
+    const nameSpan = document.createElement('span');
+    nameSpan.style.flex = '1';
+    nameSpan.style.marginRight = '8px';
+    nameSpan.style.fontSize = '14px';
+    nameSpan.style.wordBreak = 'break-all';
 
     if (isUrl) {
-        nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.value = fileOrUrl.split('/').pop();
-        nameInput.readOnly = true;
-        nameInput.style.flex = '1';
-        nameInput.style.marginRight = '8px';
-        nameInput.style.fontSize = '14px';
-        nameInput.style.border = '1px solid #ccc';
-        nameInput.style.borderRadius = '4px';
-        nameInput.style.padding = '2px 6px';
-        nameInput.style.backgroundColor = '#eaeaea';
-        nameInput.style.cursor = 'pointer';
+        nameSpan.textContent = fileOrUrl.split('/').pop();
+        nameSpan.style.color = '#007bff';
+        nameSpan.style.cursor = 'pointer';
 
-        // Open URL on click
-        nameInput.addEventListener('click', (e) => {
-            e.preventDefault();
+        nameSpan.addEventListener('click', () => {
             window.open(fileOrUrl, '_blank', 'noopener,noreferrer');
         });
 
@@ -201,7 +207,7 @@ function addFileItem(fileOrUrl, container, isUrl = false) {
             img.style.height = '60px';
             img.style.objectFit = 'cover';
             img.style.marginRight = '8px';
-            div.insertBefore(img, div.firstChild);
+            div.insertBefore(img, checkbox.nextSibling);
         }
 
     } else {
@@ -217,26 +223,12 @@ function addFileItem(fileOrUrl, container, isUrl = false) {
                 img.style.height = '60px';
                 img.style.objectFit = 'cover';
                 img.style.marginRight = '8px';
-                div.insertBefore(img, div.firstChild);
+                div.insertBefore(img, checkbox.nextSibling);
             };
             reader.readAsDataURL(file);
         }
 
-        nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.value = file.name;
-        nameInput.style.flex = '1';
-        nameInput.style.marginRight = '8px';
-        nameInput.style.fontSize = '14px';
-        nameInput.style.border = '1px solid #ccc';
-        nameInput.style.borderRadius = '4px';
-        nameInput.style.padding = '2px 6px';
-
-        // Update file object with new name
-        file.newName = nameInput.value;
-        nameInput.addEventListener('input', () => {
-            file.newName = nameInput.value;
-        });
+        nameSpan.textContent = file.name;
     }
 
     // Remove button
@@ -251,26 +243,25 @@ function addFileItem(fileOrUrl, container, isUrl = false) {
     removeBtn.style.fontSize = '12px';
     removeBtn.addEventListener('click', () => {
         div.remove();
-			
-				if (typeof fileOrUrl === 'string') {
-					if(container.id === 'customer_image_list'){
-						deletedImages.push(fileOrUrl);
-					}else{
-						deletedDocs.push(fileOrUrl);
-					}
-				}
+        if (typeof fileOrUrl === 'string') {
+            if (container.id === 'customer_image_list') {
+                deletedImages.push(fileOrUrl);
+            } else {
+                deletedDocs.push(fileOrUrl);
+            }
+        }
         if (container.children.length === 0) {
             container.textContent = 'No file selected';
             container.style.setProperty('padding-top', '7px', 'important');
         }
     });
 
-    div.appendChild(nameInput);
+    div.appendChild(nameSpan);
     div.appendChild(removeBtn);
     container.appendChild(div);
 }
-	
-	
+
+
 function saveActiveTab(){
 		var activeTab = document.querySelector('.e-n-tab-title[aria-selected="true"]');
 			if (activeTab) {
@@ -370,6 +361,7 @@ function populatePage(data){
 	postal_code.value = data.postal_code || '';
 	phone_number.value = data.phone_number || '';
 	language.value = data.language || '';
+	address.value = data.address || '';
 	
 	//Right now we assume first forecast
 	if (data.forecasts.length > 0){
@@ -485,7 +477,7 @@ function renderForecastTable(data){
 					}
 
 			  html += '<tr data-id="' + forecast.id + '">';
-				html += '<td><input type="checkbox" class="forecast-select" value="' + forecast.id + '"' + (i === 0 ? ' checked' : '') + '></td>';
+			html += '<td><input type="checkbox" class="forecast-select" value="' + forecast.id + '"' + (i === 0 ? ' checked' : '') + ' disabled></td>';
         html += '<td contenteditable="true">' + formattedEntryDate + '</td>';
         html += '<td contenteditable="true">' + (forecast.due_date ? formattedDueDate : '') + '</td>';
         html += '<td contenteditable="true">' + (forecast.model || '') + '</td>';
@@ -585,6 +577,11 @@ function isValueDifferent(data, formName){
 		if (language && language.value !== data.language){
 			return true;
 		}
+		
+		if (address && address.value !== data.address){
+			return true;
+		}
+		
 	}else if(formName === 'order'){
 		var forecast = getCheckedRow();
 		
@@ -680,6 +677,7 @@ function saveCustomerInfo(){
 			'email':email.value,
 			'phone_number':phone_number.value,
 			'language':language.value,
+			'address':address.value,
 			'id' : originalData.id
 		};
 
@@ -732,6 +730,10 @@ function saveCustomerOrders(){
 		
 	if (isChange || isDirtyRows || isImageListChange) 
 	{
+		var formData = new FormData();
+		formData.append('_wpnonce', ajaxNonce);
+		formData.append('action', 'save_client_order');
+		
 		showLoading();
 		var forecasts = [];
 		var forecast = originalData.forecasts.find(function(f) { return f.id === activeForecast.id; });
@@ -790,30 +792,26 @@ function saveCustomerOrders(){
 		}
 		
 		if (isImageListChange){
-					allDocs.forEach(item => {
+			allDocs.forEach(item => {
 				if (item instanceof File) {
 						formData.append('customer_docs[]', item);
-				} /*else if (item.url) {
+				} else if (item.url) {
 						formData.append('customer_docs_urls[]', item.url);
-				}*/
+				}
 			});
 
 			allImages.forEach(item => {
 				if (item instanceof File) {
 						formData.append('customer_images[]', item);
-				} /*else if (item.url) {
+				} else if (item.url) {
 						formData.append('customer_docs_images[]', item.url);
-				}*/
+				}
 			});
 
 			formData.append('deleted_docs', JSON.stringify(deletedDocs));
 			formData.append('deleted_images', JSON.stringify(deletedImages));
 		}
-		
-		var formData = new FormData();
-		formData.append('_wpnonce', ajaxNonce);
-		formData.append('action', 'save_client_order');
-
+	
 		formData.append('data', JSON.stringify(forecasts));
 		for (const [key, value] of formData.entries()) {
     	console.log(key, value);
@@ -828,7 +826,9 @@ function saveCustomerOrders(){
 			// Parse response as JSON
 		}).then(function(data) {
 			if (data && data.success) {
-				getActiveTabAndReload();
+				//getActiveTabAndReload();
+				activateTab();
+				hideLoading();
 			} else {
 				hideLoading();
 				alert('Error while saving your table: ' + data.data);
