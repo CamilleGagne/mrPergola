@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	var lastName = document.getElementById('last_name');
 	var email = document.getElementById('forecast_email');
 	var postalCode = document.getElementById('forecast_postal_code');
+	var address = document.getElementById('forecast_address');
 	var phoneNum = document.getElementById('forecast_phone_num');
 	var language = document.getElementById('forecast_language');
 
@@ -428,6 +429,7 @@ function addFilesToUi(files, list) {
     formData.append('last_name', lastName.value || '');
     formData.append('email', email.value || '');
     formData.append('postal_code', postalCode.value || '');
+		formData.append('address', address.value || '');
 		formData.append('phoneNum', phoneNum.value || '');
 		formData.append('language', language.value || '');
     formData.append('model', modelField.value || '');
