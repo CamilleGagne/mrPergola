@@ -77,23 +77,18 @@ document.addEventListener('DOMContentLoaded', function () {
 			document.getElementById('calendar-3')
 		];
 		
-		
 		calendars.forEach((cal, index) => {
-			if (
-				(calendarPage === 0 && index < 3) ||
-				(calendarPage === 1 && index >= 3)
-			) {
 				cal.style.display = 'block';
-			} else {
-				cal.style.display = 'none';
-			}
 		});
 	}
 	
 	if (prevBtn) {
 		prevBtn.addEventListener('click', function () {
-			if (monthOffsetBase === 0) return;
+			if (monthOffsetBase === 0) {return;}
 		 	monthOffsetBase -= 3;
+			if (monthOffsetBase === 0) {
+				prevBtn.disabled = true;
+			}
 			calendarPage = 0;
 			rebuildCalendars();
 		});
