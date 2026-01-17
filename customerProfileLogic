@@ -191,7 +191,7 @@ function addFileItem(fileOrUrl, container, isUrl = false) {
     nameSpan.style.wordBreak = 'break-all';
 
     if (isUrl) {
-        nameSpan.textContent = fileOrUrl.split('/').pop();
+        nameSpan.textContent = fileOrUrl.toString().split('/').pop();
         nameSpan.style.color = '#007bff';
         nameSpan.style.cursor = 'pointer';
 
@@ -343,7 +343,7 @@ function notifyCustomer(){
 			}
 		}).catch(function(error) {
 			hideLoading();
-			alert('Error:', error);
+			alert('Error:' + error);
 		});
 	}
 }	
@@ -360,7 +360,7 @@ function populatePage(data){
 	email.value = data.email || '';
 	postal_code.value = data.postal_code || '';
 	phone_number.value = data.phone_number || '';
-	language.value = data.language || '';
+	language.value = data.language || language.value || '';
 	address.value = data.address || '';
 	
 	//Right now we assume first forecast
@@ -547,10 +547,9 @@ function loadCustomerData(id){
     })
     .catch(function(err){
         hideLoading();
-        alert('Error loading profile:', err);
+        alert('Error loading profile: ' + err.toString());
     });
 }
-
 	
 function isValueDifferent(data, formName){
 	if (formName === 'client'){
@@ -835,7 +834,7 @@ function saveCustomerOrders(){
 			}
 		}).catch(function(error) {
 			hideLoading();
-			alert('Fetch error:', error);
+			alert('Fetch error:' + error);
 		});
 	} else{
 		hideLoading();
