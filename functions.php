@@ -291,8 +291,9 @@ function save_forecast_form() {
 	$last_name   = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
 	$email       = isset($_POST['email']) ? sanitize_email($_POST['email']) : '';
 	$postal_code = isset($_POST['postal_code']) ? sanitize_text_field($_POST['postal_code']) : '';
+	$address 	 = isset($_POST['address']) ? sanitize_text_field($_POST['address']) : '';
 	$phone_num   = isset($_POST['phoneNum']) ? sanitize_text_field($_POST['phoneNum']) : '';
-	$language   = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : '';
+	$language    = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : '';
 
 	if (empty($first_name) || empty($last_name)) {
 		$errors .= 'Missing required fields. ';
@@ -338,9 +339,10 @@ function save_forecast_form() {
 			'last_name'    => $last_name,
 			'email'        => $email,
 			'phone_number' => $phone_num,
-			'language'     => $language
+			'language'     => $language,
+			'address'  	   => $address
 		],
-		['%s','%s','%s','%s','%s']
+		['%s','%s','%s','%s','%s','%s']
 	);
 
 	if ($inserted_customer === false) {
@@ -538,7 +540,6 @@ add_action( 'elementor_pro/forms/new_record', function( $record, $ajax_handler )
 			$postQty = $fields['forecast_form_posts_qty'];
 		}
 		
-	
 		$dueDate = new DateTime($fields['forecast_form_dueDate']);
 		$formattedDueDate= $dueDate->format('Y-m-d');
 		
@@ -1735,7 +1736,7 @@ function myplugin_get_customer(WP_REST_Request $request) {
     if (!$id) {
         return new WP_Error('no_id', 'No ID provided', ['status' => 400]);
     }
-
+	
     $results = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT 
@@ -1746,6 +1747,7 @@ function myplugin_get_customer(WP_REST_Request $request) {
                 c.phone_number,
                 c.postal_code,
 				c.language,
+				c.address,
                 f.id AS forecast_id,
                 f.model,
                 f.model_type,
@@ -1789,7 +1791,8 @@ function myplugin_get_customer(WP_REST_Request $request) {
         'email'       => $results[0]['email'],
         'phone_number'=> $results[0]['phone_number'],
         'postal_code' => $results[0]['postal_code'],
-		'language'=> $results[0]['language'],
+		'language'	  => $results[0]['language'],
+		'address'	  => $results[0]['address'],
         'forecasts'   => [],
     ];
 
@@ -1857,12 +1860,13 @@ function save_client_profile() {
     $email       = isset($payload['email']) ? sanitize_email($payload['email']) : '';
     $postal_code = isset($payload['postal_code']) ? sanitize_text_field($payload['postal_code']) : '';
     $phone_num   = isset($payload['phone_number']) ? sanitize_text_field($payload['phone_number']) : '';
-	$language   = isset($payload['language']) ? sanitize_text_field($payload['language']) : '';
+	$language    = isset($payload['language']) ? sanitize_text_field($payload['language']) : '';
+	$address     = isset($payload['address']) ? sanitize_text_field($payload['address']) : '';
 
     if (empty($id)) {
         wp_send_json_error('Client profile save: Missing or invalid customer ID.');
     } 
-
+   //'address'     => $address
     $result = $wpdb->update(
         'wp_custom_customers',
         [
@@ -1871,10 +1875,11 @@ function save_client_profile() {
             'last_name'    => $last_name,
             'email'        => $email,
             'phone_number' => $phone_num,
-			'language'     => $language
+			'language'     => $language,
+			'address'      => $address,
         ],
         ['id' => $id],
-        ['%s','%s','%s','%s','%s','%s'],
+        ['%s','%s','%s','%s','%s','%s','%s'],
         ['%d']
     );
 
