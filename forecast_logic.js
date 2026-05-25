@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	var address = document.getElementById('forecast_address');
 	var phoneNum = document.getElementById('forecast_phone_num');
 	var language = document.getElementById('forecast_language');
+	var sales_rep = document.getElementById('rep_name');
 
 function addFilesToUi(files, list) {
     files = Array.from(files);
@@ -444,6 +445,7 @@ function addFilesToUi(files, list) {
     formData.append('postSize', customPostSize.value || postSizeField.value || '');
     formData.append('postQty', customPostQty.value || postQtyField.value || '');
     formData.append('date', date.value || '');
+		formData.append('salesRep', sales_rep.value || '');
 		
 		if (color.value && color.value === 'other'){
 			formData.append('color', customColor.value || '');
@@ -486,11 +488,7 @@ function addFilesToUi(files, list) {
             formData.append('customer_images[]', imageInput.files[m]);
         }
 		}
-		
-		for (const [key, value] of formData.entries()) {
-				console.log(key, value);
-		}
-		
+
 		saveForm(formData, ajaxNonce);
 	});
 	
