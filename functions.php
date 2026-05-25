@@ -294,6 +294,8 @@ function save_forecast_form() {
 	$address 	 = isset($_POST['address']) ? sanitize_text_field($_POST['address']) : '';
 	$phone_num   = isset($_POST['phoneNum']) ? sanitize_text_field($_POST['phoneNum']) : '';
 	$language    = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : '';
+	
+	$sales_rep    = isset($_POST['salesRep']) ? sanitize_text_field($_POST['salesRep']) : '';
 
 	if (empty($first_name) || empty($last_name)) {
 		$errors .= 'Missing required fields. ';
@@ -375,10 +377,11 @@ function save_forecast_form() {
 			'order_status'  => $orderStatus,
 			'accessories'   => json_encode($accessories),
 			'image_url'     => json_encode($imageUrls),
-			'doc_url'       => json_encode($docUrls)
+			'doc_url'       => json_encode($docUrls),
+			'sales_rep'     => json_encode($sales_rep),
 		],
 		['%d','%s','%s','%s','%s','%s','%s','%s','%s','%s',
-		 '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s']
+		 '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s']
 	);
 
 	if ($inserted_forecast === false) {
