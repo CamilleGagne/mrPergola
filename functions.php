@@ -378,7 +378,7 @@ function save_forecast_form() {
 			'accessories'   => json_encode($accessories),
 			'image_url'     => json_encode($imageUrls),
 			'doc_url'       => json_encode($docUrls),
-			'sales_rep'     => json_encode($sales_rep),
+			'sales_rep'     => $sales_rep,
 		],
 		['%d','%s','%s','%s','%s','%s','%s','%s','%s','%s',
 		 '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s']
@@ -763,8 +763,8 @@ function save_table_cb() {
 		[$errors, $success] = execute_save($data, $table, $columns, $format);
 	}else if ($action === 'save_forecast_table'){
 		$table = 'wp_forecast_table';
-		$columns = ['status','entry_date','due_date','model','model_type','width','depth','subframe_size','subframe_qty','louver_size', 'louver_qty','post_size','post_qty','soldiers','color','accessories'];
-		$format = array('%d','%s', '%s','%s','%s', '%s', '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s');
+		$columns = ['status','entry_date','due_date','model','model_type','width','depth','subframe_size','subframe_qty','louver_size', 'louver_qty','post_size','post_qty','soldiers','color', 'sales_rep', 'accessories'];
+		$format = array('%d','%s', '%s','%s','%s', '%s', '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s');
 		[$errors, $success] = execute_save_forecast($data, $table, $columns, $format);
 	}else if ($action === 'save_todo_table'){
 		$table = 'wp_custom_form_todolist';
@@ -1096,6 +1096,7 @@ function display_forecast_data($status) {
 			<th style="width:2%">Qty</th>
 			<th style="width:3%">Slds</th>
 			<th >Color</th>
+			<th >Rep.</th>
 			<th >Extras</th>
 			<th style="width:7%">Postal Code</th>
 			<th style="display:none" class="hidden-data"></th>
@@ -1122,6 +1123,7 @@ function display_forecast_data($status) {
 		$full_name = $row->first_name . ' ' . $row->last_name;
 		$accessories = json_decode($row->accessories, true);
 		$color = $row->color;
+		$rep = $row->sales_rep;
 
 		if (is_null($color) || $color === 'NULL' || $color === '') {
 			$color = '';
@@ -1148,6 +1150,7 @@ function display_forecast_data($status) {
 		echo '<td class="post_qty" contenteditable="true" style="' . ($customFlags['postQty'] ? $customStyle : '') . '">' . esc_html($row->post_qty) . '</td>';
 		echo '<td class="soldiers" contenteditable="true">' . esc_html($row->soldiers) . '</td>';
 		echo '<td class="color" contenteditable="true">' . esc_html($color) . '</td>';
+		echo '<td class="sales_rep" contenteditable="true">' . esc_html($rep) . '</td>';
 		echo '<td class="accessories" contenteditable="true">' . esc_html(implode(', ', (array) $accessories)) . '</td>';
 		echo '<td class="postal_code" contenteditable="true">' . esc_html($row->postal_code) . '</td>';
 		echo '<td class="custom_fields hidden-data" style="display:none">' . esc_html($row->custom_fields) . '</td>';    
