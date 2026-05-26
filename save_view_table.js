@@ -96,7 +96,7 @@ function saveForecastData(tableIds, cbAction, btnId, ajaxNonce){
 							post_qty: row.querySelector('.post_qty').innerText,
 							soldiers: row.querySelector('.soldiers').innerText,
 							color: row.querySelector('.color').innerText,
-							sales_rep: row.querySelector('.rep').innerText,
+							sales_rep: row.querySelector('.sales_rep').innerText,
 							accessories: row.querySelector('.accessories').innerText.split(',').map(s => s.trim()).filter(s => s.length > 0)
 					}
 			};
